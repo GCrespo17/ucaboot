@@ -3,7 +3,6 @@
 
 [![CI/CD Pipeline](https://img.shields.io/badge/CI%2FCD-GitHub_Actions-blue?logo=github-actions)](https://github.com)
 [![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?logo=docker&logoColor=white)](https://www.docker.com/)
-[![Cloud](https://img.shields.io/badge/Cloud-Render%20%7C%20Vercel%20%7C%20Supabase-informational)](https://render.com)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
 ---
