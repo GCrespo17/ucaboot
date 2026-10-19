@@ -1,3 +1,10 @@
+# Integrantes:
+-Gabriel Crespo
+-Emmanuel Santiago
+-Ainhoa Hurtado
+-Gabriel Castellano
+-Jose Ojeda
+
 # Ucaboot
 ### Plataforma de Cuestionarios Interactivos en Tiempo Real (Clon de Kahoot)
 
