@@ -1,0 +1,23 @@
+# Routes shared by dev and production. Included inside the server block of default.conf.
+
+proxy_http_version 1.1;
+proxy_set_header Host $host;
+proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+proxy_set_header X-Forwarded-Proto $scheme;
+proxy_set_header Upgrade $http_upgrade;
+proxy_set_header Connection $connection_upgrade;
+
+# Backend REST API
+location /api/ {
+  proxy_pass http://backend:${BACKEND_PORT};
+}
+
+# Backend Socket.IO (WebSocket)
+location /socket.io/ {
+  proxy_pass http://backend:${BACKEND_PORT};
+}
+
+# Supabase Auth: the trailing "/" strips the /auth/v1 prefix, as Supabase does in the cloud
+location /auth/v1/ {
+  proxy_pass http://auth:${AUTH_PORT}/;
+}
