@@ -1,0 +1,99 @@
+services:
+  db:
+    image: postgres:17
+    command: ["postgres", "-p", "${POSTGRES_PORT}"]
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+      PGPORT: ${POSTGRES_PORT}            # psql and pg_isready inside the container use it
+      AUTH_DB_PASSWORD: ${AUTH_DB_PASSWORD}   # used by the init script
+    ports: ["${POSTGRES_PORT}:${POSTGRES_PORT}"]   # optional: only to connect with DBeaver/pgAdmin from your machine
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./docker/postgres/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      retries: 10
+
+  redis:
+    image: redis:7
+    command: ["redis-server", "--port", "${REDIS_PORT}"]
+
+  mailpit:
+    image: axllent/mailpit
+    environment:
+      MP_SMTP_BIND_ADDR: 0.0.0.0:${SMTP_PORT}
+      MP_UI_BIND_ADDR: 0.0.0.0:${MAILPIT_UI_PORT}
+    ports: ["${MAILPIT_UI_PORT}:${MAILPIT_UI_PORT}"]
+
+  # Supabase Auth (GoTrue), local only. In the cloud, Supabase provides it.
+  auth:
+    image: supabase/auth:v2.197.0
+    environment:
+      GOTRUE_API_HOST: 0.0.0.0
+      GOTRUE_API_PORT: ${AUTH_PORT}
+      API_EXTERNAL_URL: http://localhost:${APP_PORT}
+      GOTRUE_SITE_URL: http://localhost:${APP_PORT}
+
+      GOTRUE_DB_DRIVER: postgres
+      GOTRUE_DB_DATABASE_URL: postgres://supabase_auth_admin:${AUTH_DB_PASSWORD}@db:${POSTGRES_PORT}/${POSTGRES_DB}
+
+      GOTRUE_JWT_SECRET: ${AUTH_JWT_SECRET}
+      GOTRUE_JWT_EXP: "3600"
+      GOTRUE_JWT_AUD: authenticated
+      GOTRUE_JWT_DEFAULT_GROUP_NAME: authenticated
+      GOTRUE_JWT_ADMIN_ROLES: service_role
+
+      # Epic 1 rules: 8+ characters, at least one letter and one number; recovery link valid for 30 min
+      GOTRUE_EXTERNAL_EMAIL_ENABLED: "true"
+      GOTRUE_PASSWORD_MIN_LENGTH: "8"
+      GOTRUE_PASSWORD_REQUIRED_CHARACTERS: "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ:0123456789"
+      GOTRUE_MAILER_OTP_EXP: "1800"
+      GOTRUE_MAILER_AUTOCONFIRM: "true"   # local: sign up without confirming the email
+
+      # Emails (password recovery) go to Mailpit
+      GOTRUE_SMTP_HOST: mailpit
+      GOTRUE_SMTP_PORT: ${SMTP_PORT}
+      GOTRUE_SMTP_ADMIN_EMAIL: no-reply@ucaboot.local
+      GOTRUE_SMTP_SENDER_NAME: Ucaboot
+      GOTRUE_MAILER_URLPATHS_INVITE: /auth/v1/verify
+      GOTRUE_MAILER_URLPATHS_CONFIRMATION: /auth/v1/verify
+      GOTRUE_MAILER_URLPATHS_RECOVERY: /auth/v1/verify
+      GOTRUE_MAILER_URLPATHS_EMAIL_CHANGE: /auth/v1/verify
+    depends_on:
+      db: { condition: service_healthy }
+      mailpit: { condition: service_started }
+
+  backend:
+    build:
+      context: ./backend
+      target: runtime
+    environment:
+      PORT: ${BACKEND_PORT}
+      DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:${POSTGRES_PORT}/${POSTGRES_DB}
+      REDIS_URL: redis://redis:${REDIS_PORT}
+      # Locally, Supabase Auth is reached through nginx (/auth/v1), like in the cloud
+      SUPABASE_URL: http://nginx:${APP_PORT}
+      SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY}
+    depends_on:
+      db: { condition: service_healthy }
+      redis: { condition: service_started }
+
+  # Single entry point: serves the frontend build and routes /api, /socket.io and /auth/v1
+  nginx:
+    build:
+      context: .
+      dockerfile: nginx/Dockerfile
+      args:
+        VITE_SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY}
+    environment:
+      APP_PORT: ${APP_PORT}
+      BACKEND_PORT: ${BACKEND_PORT}
+      AUTH_PORT: ${AUTH_PORT}
+    ports: ["${APP_PORT}:${APP_PORT}"]
+    depends_on: [backend, auth]
+
+volumes:
+  pgdata:
