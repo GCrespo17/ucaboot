@@ -9,7 +9,7 @@ describe('participantReducer', () => {
 
     it('debe iniciar en estado "esperando" al unirse a una sala', () => { 
         const action = { 
-            type: 'JOIN\_ROOM' as const, 
+            type: 'JOIN_ROOM' as const, 
             payload: { 
                 pin: '123456', 
                 nickname: 'Pablo' 
@@ -22,9 +22,9 @@ describe('participantReducer', () => {
         expect(state.nickname).toBe('Pablo'); 
     }); 
     
-    it('debe cambiar a "pregunta" al recibir QUESTION\_OPEN', () => { 
+    it('debe cambiar a "pregunta" al recibir QUESTION_OPEN', () => { 
         const action = { 
-            type: 'QUESTION\_OPEN' as const, 
+            type: 'QUESTION_OPEN' as const, 
             payload: { 
                 questionIndex: 1, 
                 totalQuestions: 5, 
@@ -51,7 +51,7 @@ describe('participantReducer', () => {
             } 
         }; 
         const action = { 
-            type: 'SUBMIT\_ANSWER' as const, 
+            type: 'SUBMIT_ANSWER' as const, 
             payload: { 
                 optionId: 'opt-red-triangle' 
             } 
@@ -68,7 +68,7 @@ describe('participantReducer', () => {
             status: 'esperando' 
         }; 
         const action = { 
-            type: 'SUBMIT\_ANSWER' as const, 
+            type: 'SUBMIT_ANSWER' as const, 
             payload: { 
                 optionId: 'opt-red-triangle' 
             } 
@@ -79,9 +79,9 @@ describe('participantReducer', () => {
         expect(nextState.selectedOptionId).toBeNull(); 
     }); 
     
-    it('debe cambiar a "resultado" al recibir ROUND\_RESULT', () => { 
+    it('debe cambiar a "resultado" al recibir ROUND_RESULT', () => { 
         const action = { 
-            type: 'ROUND\_RESULT' as const, 
+            type: 'ROUND_RESULT' as const, 
             payload: { 
                 isCorrect: true, 
                 scoreGained: 850, 
@@ -96,9 +96,9 @@ describe('participantReducer', () => {
         expect(state.lastRoundResult?.totalScore).toBe(850); 
     }); 
     
-    it('debe cambiar a "final" al recibir GAME\_OVER', () => { 
+    it('debe cambiar a "final" al recibir GAME_OVER', () => { 
         const action = { 
-            type: 'GAME\_OVER' as const, 
+            type: 'GAME_OVER' as const, 
             payload: { 
                 totalScore: 2400, 
                 finalRank: 1, 
@@ -111,7 +111,7 @@ describe('participantReducer', () => {
         expect(state.finalResult?.finalRank).toBe(1); 
     }); 
     
-    it('debe reiniciar el estado al ejecutar RESET\_GAME', () => { 
+    it('debe reiniciar el estado al ejecutar RESET_GAME', () => { 
         const stateModificado: ParticipantState = { 
             status: 'resultado', 
             pin: '999999', 
@@ -126,7 +126,7 @@ describe('participantReducer', () => {
             }, 
             finalResult: null, 
         }; 
-        const state = participantReducer(stateModificado, { type: 'RESET\_GAME' }); 
+        const state = participantReducer(stateModificado, { type: 'RESET_GAME' }); 
         
         expect(state).toEqual(initialParticipantState); 
     }); 

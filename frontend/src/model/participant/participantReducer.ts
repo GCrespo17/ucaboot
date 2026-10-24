@@ -9,7 +9,7 @@ export type ParticipantStatus =
         questionIndex: number; 
         totalQuestions: number; 
         timeLimit: number; 
-        closesAt: number; // Timestamp UTC límite 
+        closesAt: number;
     } 
     
     export interface RoundResult { 
@@ -46,12 +46,12 @@ export type ParticipantStatus =
     };
     
     export type ParticipantAction = 
-        | { type: 'JOIN\_ROOM'; payload: { pin: string; nickname: string } } 
-        | { type: 'QUESTION\_OPEN'; payload: QuestionData } 
-        | { type: 'SUBMIT\_ANSWER'; payload: { optionId: string } } 
-        | { type: 'ROUND\_RESULT'; payload: RoundResult } 
-        | { type: 'GAME\_OVER'; payload: FinalResult } 
-        | { type: 'RESET\_GAME' 
+        | { type: 'JOIN_ROOM'; payload: { pin: string; nickname: string } } 
+        | { type: 'QUESTION_OPEN'; payload: QuestionData } 
+        | { type: 'SUBMIT_ANSWER'; payload: { optionId: string } } 
+        | { type: 'ROUND_RESULT'; payload: RoundResult } 
+        | { type: 'GAME_OVER'; payload: FinalResult } 
+        | { type: 'RESET_GAME' 
     }; 
     
     export function participantReducer( 
@@ -60,7 +60,7 @@ export type ParticipantStatus =
     ): ParticipantState { 
         switch (action.type) { 
 
-            case 'JOIN\_ROOM': 
+            case 'JOIN_ROOM': 
                 return { 
                     ...state, 
                     status: 'esperando', 
@@ -68,7 +68,7 @@ export type ParticipantStatus =
                     nickname: action.payload.nickname, 
                 }; 
 
-            case 'QUESTION\_OPEN': 
+            case 'QUESTION_OPEN': 
                 return { 
                     ...state, 
                     status: 'pregunta', 
@@ -76,7 +76,7 @@ export type ParticipantStatus =
                     selectedOptionId: null, 
                 };
                 
-            case 'SUBMIT\_ANSWER': 
+            case 'SUBMIT_ANSWER': 
                 if (state.status !== 'pregunta') return state; 
                 return { 
                     ...state,
@@ -84,21 +84,21 @@ export type ParticipantStatus =
                     selectedOptionId: action.payload.optionId, 
                 }; 
             
-            case 'ROUND\_RESULT': 
+            case 'ROUND_RESULT': 
                 return { 
                     ...state, 
                     status: 'resultado', 
                     lastRoundResult: action.payload, 
                 }; 
                 
-            case 'GAME\_OVER': 
+            case 'GAME_OVER': 
                 return { 
                     ...state, 
                     status: 'final', 
                     finalResult: action.payload, 
                 }; 
             
-            case 'RESET\_GAME': 
+            case 'RESET_GAME': 
                 return initialParticipantState; 
             
             default: return state; 
