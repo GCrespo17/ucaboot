@@ -1,0 +1,31 @@
+services:
+  backend:
+    build:
+      context: ./backend
+      target: dev
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+
+  # Dev only: Vite dev server with hot reload. In production, nginx serves the build.
+  frontend:
+    image: node:22-alpine
+    working_dir: /app
+    command: sh -c "npm ci && npm run dev"
+    environment:
+      FRONTEND_PORT: ${FRONTEND_PORT}
+      VITE_SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY}
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+
+  # Dev: stock nginx (no frontend build) proxying / to Vite
+  nginx:
+    image: nginx:alpine
+    build: !reset null
+    environment:
+      FRONTEND_PORT: ${FRONTEND_PORT}
+    volumes:
+      - ./nginx/dev/default.conf.template:/etc/nginx/templates/default.conf.template:ro
+      - ./nginx/templates/routes:/etc/nginx/templates/routes:ro
+    depends_on: [backend, auth, frontend]

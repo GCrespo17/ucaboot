@@ -1,0 +1,19 @@
+# Production: serves the frontend build and routes the rest (routes/api.conf).
+# The official nginx image fills in ${...} from the environment at startup.
+
+map $http_upgrade $connection_upgrade {
+  default upgrade;
+  ''      close;
+}
+
+server {
+  listen ${APP_PORT};
+  root /usr/share/nginx/html;
+
+  include /etc/nginx/conf.d/routes/api.conf;
+
+  # Frontend (static build); unknown paths go to index.html for React Router
+  location / {
+    try_files $uri /index.html;
+  }
+}
