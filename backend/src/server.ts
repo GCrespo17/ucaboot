@@ -5,6 +5,7 @@ import { createApp } from "./app.js";
 import { buildContainer } from "./container.js";
 import { db } from "./infra/db/client.js";
 import { env } from "./config/env.js";
+import { registerSocketHandlers } from "./controllers/sockets/registerSocketHandlers.js";
 import { createSocketServer } from "./controllers/sockets/socket.js";
 
 // Applies pending migrations (none exist until the first domain table is generated)
@@ -16,9 +17,7 @@ const container = buildContainer();
 const httpServer = createServer();
 const io = createSocketServer(httpServer);
 
-io.on("connection", (socket) => {
-  container.logger.info("socket connected", { socketId: socket.id });
-});
+registerSocketHandlers(io, container);
 
 httpServer.on("request", createApp(container));
 

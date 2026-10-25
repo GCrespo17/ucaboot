@@ -13,9 +13,10 @@ import { InMemoryRoomLock } from "./infra/state/inMemoryRoomLock.js";
 import { InMemoryRoomStateStore } from "./infra/state/inMemoryRoomStateStore.js";
 import { TimeoutScheduler } from "./infra/timer/timeoutScheduler.js";
 import { SystemClock } from "./infra/time/systemClock.js";
+import { RoomService } from "./services/roomService.js";
 
 // Composition root: the only file that knows the concrete adapters.
-// Services and the socket notifier are wired here as later steps add them.
+// The socket notifier and the remaining services are wired here as later steps add them.
 export function buildContainer() {
   const clock: Clock = new SystemClock();
   const logger: Logger = new ConsoleLogger();
@@ -25,7 +26,9 @@ export function buildContainer() {
   const quizzes: QuizRepository = new InMemoryQuizRepository(seedQuizzes);
   const rooms: RoomStateStore = new InMemoryRoomStateStore();
 
-  return { clock, logger, ids, lock, scheduler, quizzes, rooms };
+  const roomService = new RoomService({ quizzes, rooms, lock, clock, ids });
+
+  return { clock, logger, ids, lock, scheduler, quizzes, rooms, roomService };
 }
 
 export type Container = ReturnType<typeof buildContainer>;
