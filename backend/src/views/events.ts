@@ -29,13 +29,44 @@ export interface HostRoomSnapshot {
   serverNow: number;
 }
 
-export interface ClientToServerEvents {
-  "host:watch": (payload: unknown, ack: (response: Ack<HostRoomSnapshot>) => void) => void;
+export interface PlayerRoomSnapshot {
+  pin: string;
+  // The accepted (normalized) nickname, not the one typed
+  nickname: string;
+  phase: Phase;
+  // Filled in by the round and results steps; null until then
+  question: null;
+  result: null;
+  final: null;
+  serverNow: number;
 }
 
-export type ServerToClientEvents = Record<string, never>;
+export interface PlayerJoinResult {
+  // Secret: only travels in the ack of the player's own join
+  token: string;
+  playerId: string;
+  nickname: string;
+  room: PlayerRoomSnapshot;
+}
+
+export interface LobbyUpdate {
+  players: PlayerSummary[];
+  count: number;
+  maxPlayers: number;
+}
+
+export interface ClientToServerEvents {
+  "host:watch": (payload: unknown, ack: (response: Ack<HostRoomSnapshot>) => void) => void;
+  "player:join": (payload: unknown, ack: (response: Ack<PlayerJoinResult>) => void) => void;
+}
+
+export interface ServerToClientEvents {
+  "lobby:updated": (update: LobbyUpdate) => void;
+}
 
 export interface SocketData {
   // Supabase user id from the handshake; null for participants
   hostId: string | null;
+  // Set by a successful player:join
+  player: { pin: string; playerId: string } | null;
 }

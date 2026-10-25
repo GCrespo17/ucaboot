@@ -1,5 +1,6 @@
 import type { Room } from "../domain/game/model/room.js";
-import type { HostRoomSnapshot, Phase } from "./events.js";
+import type { HostRoomSnapshot } from "./events.js";
+import { toViewPhase } from "./viewPhase.js";
 
 export function toHostRoomSnapshot(room: Room, now: number): HostRoomSnapshot {
   return {
@@ -17,10 +18,4 @@ export function toHostRoomSnapshot(room: Room, now: number): HostRoomSnapshot {
     final: null,
     serverNow: now,
   };
-}
-
-// Services filter closed rooms out before they reach a view
-function toViewPhase(room: Room): Phase {
-  if (room.phase === "closed") throw new RangeError(`Room ${room.pin} is closed and has no host view`);
-  return room.phase;
 }
