@@ -1,4 +1,6 @@
 export const PIN_LENGTH = 6;
+// Attempts to find a free PIN before giving up
+export const MAX_PIN_ATTEMPTS = 10;
 export const PIN_PATTERN = /^\d{6}$/;
 
 export function isPinFormat(value: string): boolean {
