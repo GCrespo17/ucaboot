@@ -13,9 +13,9 @@ if (existsSync("./drizzle/meta/_journal.json")) {
   await migrate(db, { migrationsFolder: "./drizzle" });
 }
 
-const container = buildContainer();
 const httpServer = createServer();
 const io = createSocketServer(httpServer);
+const container = buildContainer(io);
 
 registerSocketHandlers(io, container);
 
