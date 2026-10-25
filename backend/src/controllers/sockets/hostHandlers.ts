@@ -2,10 +2,9 @@ import type { Container } from "../../container.js";
 import { AppError } from "../../services/errors.js";
 import { toHostRoomSnapshot } from "../../views/hostViews.js";
 import { handle } from "./ack.js";
+import { hostRoomName } from "./roomNames.js";
 import { hostWatchPayload } from "./schemas.js";
 import type { GameSocket } from "./socket.js";
-
-export const hostRoomName = (pin: string) => `pin:${pin}:host`;
 
 export function registerHostHandlers(socket: GameSocket, container: Container): void {
   socket.on(

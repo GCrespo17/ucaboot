@@ -17,6 +17,7 @@ export function createSocketServer(httpServer: HttpServer): GameServer {
   io.use(async (socket, next) => {
     try {
       const token: unknown = socket.handshake.auth.token;
+      socket.data.player = null;
       socket.data.hostId = typeof token === "string" && token ? await verifyAccessToken(token) : null;
       next();
     } catch (error) {
