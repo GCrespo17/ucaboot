@@ -466,6 +466,7 @@ Las cadenas de conexión (`DATABASE_URL`, `REDIS_URL`, `SUPABASE_URL`) no van en
 ## Documentación
 
 - [`docs/arquitectura_inicial.md`](docs/arquitectura_inicial.md): decisiones de arquitectura y su justificación.
+- [`docs/modelos-cloud.md`](docs/modelos-cloud.md): modelos de servicio cloud (IaaS, PaaS, SaaS, DaaS y FaaS) y qué pieza de Ucaboot cae en cada uno.
 - `docs/specs/` 
 
 ---
