@@ -1,3 +1,10 @@
+# Integrantes:
+-Gabriel Crespo
+-Emmanuel Santiago
+-Ainhoa Hurtado
+-Gabriel Castellano
+-Jose Ojeda
+
 # Ucaboot
 ### Plataforma de Cuestionarios Interactivos en Tiempo Real (Clon de Kahoot)
 
@@ -466,6 +473,7 @@ Las cadenas de conexión (`DATABASE_URL`, `REDIS_URL`, `SUPABASE_URL`) no van en
 ## Documentación
 
 - [`docs/arquitectura_inicial.md`](docs/arquitectura_inicial.md): decisiones de arquitectura y su justificación.
+- [`docs/contrato-api.md`](docs/contrato-api.md): contrato REST del CRUD de cuestionarios y preguntas.
 - `docs/specs/` 
 
 ---
