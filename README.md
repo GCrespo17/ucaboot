@@ -536,6 +536,7 @@ Las cadenas de conexión (`DATABASE_URL`, `REDIS_URL`, `SUPABASE_URL`) no van en
 - [`docs/arquitectura_inicial.md`](docs/arquitectura_inicial.md): decisiones de arquitectura y su justificación.
 - [`docs/contrato-api.md`](docs/contrato-api.md): contrato REST del CRUD de cuestionarios y preguntas.
 - [`docs/contenedores.md`](docs/contenedores.md): Dockerfiles, etapas, contenedores, puertos, variables de entorno y ejecución.
+- [`docs/modelos-cloud.md`](docs/modelos-cloud.md): modelos de servicio cloud (IaaS, PaaS, SaaS, BaaS, DBaaS y FaaS) y qué pieza de Ucaboot cae en cada uno.
 - `docs/specs/` 
 
 ---
