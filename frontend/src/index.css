@@ -1,0 +1,51 @@
+/* Variables globales y estilos base. Cada pantalla se estiliza con CSS Modules. */
+:root {
+  --color-brand: #46178f;
+  --color-brand-strong: #2f0f62;
+  --color-bg: #f2f2f2;
+  --color-surface: #ffffff;
+  --color-text: #1f1f1f;
+  --color-text-muted: #5c5c5c;
+  --color-border: #d9d9d9;
+  --color-danger: #c62828;
+
+  /* Colores de respuesta, por índice de opción (ver docs/contrato-eventos.md) */
+  --answer-red: #e21b3c;
+  --answer-blue: #1368ce;
+  --answer-yellow: #d89e00;
+  --answer-green: #26890c;
+
+  --radius: 8px;
+  --shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+  --font-sans: system-ui, "Segoe UI", Roboto, sans-serif;
+
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.5;
+  color: var(--color-text);
+  background: var(--color-bg);
+  -webkit-font-smoothing: antialiased;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  min-height: 100vh;
+}
+
+body {
+  margin: 0;
+}
+
+h1,
+h2,
+h3 {
+  margin: 0;
+  line-height: 1.2;
+}
