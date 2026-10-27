@@ -1,4 +1,5 @@
 import { LinkButton } from "../../ui/LinkButton";
+import  UcabootLogo  from "../../assets/Ucaboot.svg";
 import styles from "./HomeView.module.css";
 
 // Página pública de inicio: el anfitrión inicia sesión y el participante se une con un PIN.
@@ -6,13 +7,13 @@ import styles from "./HomeView.module.css";
 export function HomeView() {
   return (
     <section className={styles.home}>
-      <h1 className={styles.title}>Ucaboot</h1>
+      <img src={UcabootLogo} alt="Ucaboot" className={styles.logo} />
       <p className={styles.tagline}>Cuestionarios en vivo para tu clase</p>
       <div className={styles.actions}>
-        <LinkButton to="/jugar" variant="secondary" className={styles.action}>
+        <LinkButton to="/jugar" className={styles.action}>
           Unirse a una partida
         </LinkButton>
-        <LinkButton to="/login" className={styles.action}>
+        <LinkButton to="/login" variant="secondary" className={styles.action}>
           Soy anfitrión
         </LinkButton>
       </div>

@@ -12,6 +12,10 @@
   font-weight: 900;
 }
 
+.logo{
+  width: 60vw;
+}
+
 .tagline {
   margin: 0;
   font-size: 1.25rem;
