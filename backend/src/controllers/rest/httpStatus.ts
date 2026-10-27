@@ -23,6 +23,8 @@ export const HTTP_STATUS: Record<ErrorCode, number> = {
   NOT_IN_ROSTER: 403,
   NOT_JOINED: 403,
   TOO_LATE: 409,
+  PAYLOAD_TOO_LARGE: 413,
+  RATE_LIMITED: 429,
   PIN_UNAVAILABLE: 503,
   INTERNAL: 500,
 };

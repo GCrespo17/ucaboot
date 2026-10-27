@@ -13,6 +13,8 @@ export type ErrorCode =
   | "ALREADY_IN_OTHER_ROOM"
   | "NOT_JOINED"
   | "VALIDATION_ERROR"
+  | "PAYLOAD_TOO_LARGE"
+  | "RATE_LIMITED"
   | "INTERNAL";
 
 export class AppError extends Error {

@@ -47,6 +47,14 @@ Los tipos de TypeScript entran con las rutas, duplicados en `backend/src/views/`
   { "error": "UNAUTHORIZED", "message": "Missing or invalid access token" }
   ```
 
+- Límites de abuso, comunes a todas las rutas (`docs/seguridad.md`):
+  - Más de 300 peticiones por minuto desde una IP: **429** `RATE_LIMITED`, con la cabecera `Retry-After` y `retryAfterSeconds` en el cuerpo. `POST /api/rooms` además admite 10 por minuto por anfitrión.
+  - Cuerpo de más de 32 KB: **413** `PAYLOAD_TOO_LARGE`. JSON mal formado: **400** `VALIDATION_ERROR`.
+
+  ```json
+  { "error": "RATE_LIMITED", "message": "Too many requests", "retryAfterSeconds": 42 }
+  ```
+
 - `coverUrl` e `imageUrl` viajan siempre y, en este corte, valen `null`. Subir imágenes es de corte 2.
 - `position` de una opción fija el color y la forma, igual que en el contrato de eventos: `0 → red/triangle`, `1 → blue/diamond`, `2 → yellow/circle`, `3 → green/square`.
 - En la partida, el contrato de eventos llama `timeLimit` a los segundos de la pregunta. Aquí el campo guardado se llama `timeLimitSeconds`.
