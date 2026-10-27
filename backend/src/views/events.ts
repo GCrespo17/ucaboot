@@ -69,4 +69,6 @@ export interface SocketData {
   hostId: string | null;
   // Set by a successful player:join
   player: { pin: string; playerId: string } | null;
+  // Resolved in the handshake from TRUST_PROXY_HOPS; used for rate limiting
+  clientIp: string;
 }
