@@ -1,3 +1,10 @@
+# Integrantes:
+-Gabriel Crespo
+-Emmanuel Santiago
+-Ainhoa Hurtado
+-Gabriel Castellano
+-Jose Ojeda
+
 # Ucaboot
 ### Plataforma de Cuestionarios Interactivos en Tiempo Real (Clon de Kahoot)
 
@@ -206,6 +213,7 @@ ucaboot/
 │  └─ postgres/init/            # Prepara el Postgres local para Supabase Auth (rol y esquema auth)
 ├─ docs/
 │  ├─ arquitectura_inicial.md   # Decisiones de arquitectura
+│  ├─ contenedores.md           # Imágenes, contenedores, puertos, variables y ejecución
 │  └─ project-setup-plan.md     # Cómo se armó el proyecto desde cero
 ├─ docker-compose.yml           # Servicios: db, redis, mailpit, auth, backend, nginx
 ├─ docker-compose.override.yml  # Desarrollo: agrega el frontend (Vite) y hot reload; Compose lo carga automáticamente
@@ -467,6 +475,7 @@ Las cadenas de conexión (`DATABASE_URL`, `REDIS_URL`, `SUPABASE_URL`) no van en
 
 - [`docs/arquitectura_inicial.md`](docs/arquitectura_inicial.md): decisiones de arquitectura y su justificación.
 - [`docs/contrato-api.md`](docs/contrato-api.md): contrato REST del CRUD de cuestionarios y preguntas.
+- [`docs/contenedores.md`](docs/contenedores.md): Dockerfiles, etapas, contenedores, puertos, variables de entorno y ejecución.
 - `docs/specs/` 
 
 ---
