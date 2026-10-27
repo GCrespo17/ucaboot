@@ -1,12 +1,13 @@
-# Continuous integration: runs on every PR to main and on every push to main.
+# Continuous integration: runs on every PR to develop or main and on every push to them.
+# Feature branches merge into develop, and develop into main, so both need it.
 # A PR can only be merged when all jobs pass (required checks in branch protection).
 name: CI
 
 on:
   pull_request:
-    branches: [main]
+    branches: [main, develop]
   push:
-    branches: [main]
+    branches: [main, develop]
 
 # Read-only token: CI only reads the code, it never writes to the repo
 permissions:
@@ -33,12 +34,11 @@ jobs:
           cache-dependency-path: backend/package-lock.json
       - run: npm ci
       - run: npx tsc --noEmit
-      # --passWithNoTests: there are no tests yet; drop it once the domain has them
-      - run: npm test -- --passWithNoTests
+      - run: npm test
       - run: npm run build
 
   frontend:
-    name: Frontend (lint, build)
+    name: Frontend (lint, test, build)
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -52,6 +52,8 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
       - run: npm ci
       - run: npm run lint
+      # "vitest run": a single run (the npm script starts vitest in watch mode)
+      - run: npx vitest run
       # build = tsc -b (typecheck) + vite build
       - run: npm run build
 
