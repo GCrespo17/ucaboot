@@ -11,6 +11,7 @@ import { GameOverScreen } from './GameOverScreen';
 
 import { ThemeProvider } from "../../components/Themes/ThemeProvider";
 import { BackgroundShapes } from '../../components/BackgroundShapes/BackgroundShapes';
+import styles from './ParticipantContainer.module.css';
 
 export const ParticipantContainer: React.FC = () => { 
     const { 
@@ -87,9 +88,11 @@ export const ParticipantContainer: React.FC = () => {
 
   return (
     <ThemeProvider>
-      <BackgroundShapes>
-        {renderCurrentView()}
-      </BackgroundShapes>
+      <div className={styles.root}>
+        <BackgroundShapes>
+          {renderCurrentView()}
+        </BackgroundShapes>
+      </div>
     </ThemeProvider>
   );
 };
