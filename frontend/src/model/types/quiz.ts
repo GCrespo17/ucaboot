@@ -21,11 +21,14 @@ export interface QuizDetail {
   questions: Question[]; // en orden de juego
 }
 
+export const TIME_LIMITS = [5, 10, 15, 20, 30] as const;
+export type TimeLimit = (typeof TIME_LIMITS)[number];
+
 export interface Question {
   id: string;
   text: string;
   imageUrl: string | null; // null en el corte 1
-  timeLimitSeconds: 5 | 10 | 15 | 20 | 30;
+  timeLimitSeconds: TimeLimit;
   basePoints: number;
   position: number;
   options: Option[];
@@ -42,4 +45,12 @@ export interface Option {
 export interface QuizInput {
   title: string;
   description: string | null;
+}
+
+// Cuerpo de POST y PATCH de una pregunta: sin id ni position, las opciones en orden
+export interface QuestionInput {
+  text: string;
+  timeLimitSeconds: TimeLimit;
+  basePoints: number;
+  options: { text: string; isCorrect: boolean }[];
 }
