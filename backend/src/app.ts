@@ -7,6 +7,7 @@ import { errorHandler } from "./controllers/rest/errorHandler.js";
 import { healthRouter } from "./controllers/rest/routes/health.js";
 import { quizzesRouter } from "./controllers/rest/routes/quizzes.js";
 import { roomsRouter } from "./controllers/rest/routes/rooms.js";
+import { requestLogger } from './controllers/middlewares/logger.js';
 import type { Container } from "./container.js";
 
 // Bodies are a quiz or a question (a few KB at most)
@@ -23,6 +24,7 @@ export function createApp(container: Container) {
   app.use(securityHeaders);
   app.use(cors);
   app.use(express.json({ limit: MAX_JSON_BODY }));
+  app.use(requestLogger);
 
   // Before the rate limit: the platform's health checks must never be throttled
   app.use("/api/health", healthRouter(container.healthChecks, container.logger));
