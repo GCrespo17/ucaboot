@@ -1,0 +1,94 @@
+.gameover-container { 
+    display: flex; 
+    align-items: center; 
+    justify-content: center; 
+    min-height: 100vh; 
+    padding: 20px; 
+} 
+
+.gameover-card { 
+    background: white; 
+    padding: 40px 24px; 
+    border-radius: 24px; 
+    text-align: center; 
+    width: 100%; 
+    max-width: 400px; 
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.25); 
+} 
+.gameover-card h1{
+    padding-bottom: 1em !important;
+}
+
+.trophy-icon { 
+    font-size: 4.5rem;
+    margin-bottom: 8px;
+} 
+
+.podium-container{
+    display: flex;
+    align-items: end; 
+    justify-content: center; 
+    flex-direction: row;
+    gap: 16px;
+    padding-bottom: 1.5em;
+}
+
+.podium-step{
+    background-color: #ebebeb;
+    border-radius: 0.3em;
+}
+.podium-step.first {
+    height: 2.5em;
+    width: 2.5rem;
+}
+.podium-step.second {
+    height: 1.5em;
+    width: 2.5rem;
+}
+.podium-step.third {
+    height: 0.75em;
+    width: 2.5rem;
+}
+
+.podium-badge { 
+    color: var(--secondary-color, #F4B42C); 
+    padding-bottom: 1em; 
+    border-radius: 16px; 
+    font-size: 2.5em;
+} 
+
+.final-score-box { 
+    display: flex; 
+    flex-direction: column; 
+    background: #f9fafb; 
+    padding: 16px; 
+    border-radius: 16px; 
+    margin-bottom: 24px;
+} 
+
+.final-score-box span { 
+    color: #6b7280; 
+    font-size: 1rem; 
+} 
+
+.final-score-box strong { 
+    font-size: 1.7rem; 
+    color: var(--primary-color, #723F91); 
+} 
+
+.btn-reset { 
+    width: 100%; 
+    padding: 14px; 
+    background-color: var(--primary-color, #723F91); 
+    color: white; 
+    border: none; 
+    border-radius: 12px; 
+    font-size: 1.1rem; 
+    font-weight: bold; 
+    cursor: pointer; 
+    transition: filter 0.2s; 
+} 
+
+.btn-reset:hover { 
+    filter: brightness(0.9); 
+}

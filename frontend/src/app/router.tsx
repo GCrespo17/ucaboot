@@ -9,6 +9,7 @@ import { HostLayout } from "./layouts/HostLayout";
 import { PublicLayout } from "./layouts/PublicLayout";
 import { NotFoundPage } from "./NotFoundPage";
 import { PendingPage } from "./PendingPage";
+import { ParticipantContainer } from "../views/participant/ParticipantContainer";
 
 // Cada pantalla tiene su ruta aquí. PendingPage marca las rutas cuya pantalla todavía no existe.
 // Las rutas del anfitrión (/anfitrion/*) exigen sesión; /login y /registro solo se muestran sin ella.
@@ -24,7 +25,7 @@ export const router = createBrowserRouter([
           { path: "/registro", element: <RegisterView /> },
         ],
       },
-      { path: "/jugar", element: <PendingPage title="Unirse a una partida" /> },
+      { path: "/jugar", element: <ParticipantContainer /> },
     ],
   },
   {
