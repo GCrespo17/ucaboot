@@ -59,7 +59,18 @@ Reglas comunes, en `app/AppProviders.tsx`:
 
 ## Biblioteca de cuestionarios
 
-`features/library/` cubre HU-2.1 a HU-2.5: la lista en `/anfitrion/cuestionarios` (crear y eliminar) y el detalle en `/anfitrion/cuestionarios/:quizId` (ver preguntas, editar título y descripción, eliminar). Un cuestionario inexistente o de otra cuenta vuelve a la lista con un aviso. Crear, editar y borrar preguntas (HU-3.1 a HU-3.3) llega con el editor.
+`features/library/` cubre HU-2.1 a HU-2.5: la lista en `/anfitrion/cuestionarios` (crear y eliminar) y el detalle en `/anfitrion/cuestionarios/:quizId` (ver preguntas, editar título y descripción, eliminar). Un cuestionario inexistente o de otra cuenta vuelve a la lista con un aviso.
+
+## Editor de preguntas
+
+En el detalle del cuestionario se agregan, editan y eliminan preguntas (HU-3.1 a HU-3.3). El formulario es un diálogo con el texto, cuatro filas de opción (rojo, azul, amarillo y verde), el tiempo y el puntaje base. Las reglas están en `model/quizzes/questionForm.ts`:
+
+- Las filas vacías no cuentan como opción y no se envían. Hacen falta de 2 a 4 con texto y al menos una correcta.
+- Una fila marcada como correcta pero sin texto se señala como error.
+- El tiempo empieza en 20 segundos y el puntaje en 1000.
+- Al editar, si nada cambió, el diálogo se cierra sin llamar al API.
+
+Las opciones se envían en el orden del formulario, sin las filas vacías, y el servidor les asigna la posición que fija el color. Si se deja vacía la fila 3 y se llena la 4, esa opción queda en tercer lugar (amarillo).
 
 ## Scripts
 
