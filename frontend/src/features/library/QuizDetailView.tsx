@@ -2,12 +2,11 @@ import { Link, Navigate, useParams } from "react-router-dom";
 import { Button } from "../../ui/Button";
 import { ConfirmDialog } from "../../ui/ConfirmDialog";
 import { FormMessage } from "../../ui/FormMessage";
+import { SHAPES } from "./answerShapes";
 import styles from "./Library.module.css";
+import { QuestionFormDialog } from "./QuestionFormDialog";
 import { QuizFormDialog } from "./QuizFormDialog";
 import { useQuizDetailViewModel } from "./useQuizDetailViewModel";
-
-// Forma de cada opción, por posición: el color va en Library.module.css (answer0…answer3)
-const SHAPES = ["▲", "◆", "●", "■"];
 
 export function QuizDetailView() {
   const { quizId = "" } = useParams();
@@ -53,10 +52,17 @@ export function QuizDetailView() {
           <section aria-labelledby="preguntas-titulo" className={styles.questions}>
             <div className={styles.sectionHeader}>
               <h2 id="preguntas-titulo">Preguntas</h2>
-              <Button disabled title="Disponible en el próximo paso del editor">
-                Agregar pregunta
-              </Button>
+              <Button onClick={vm.openNewQuestion}>Agregar pregunta</Button>
             </div>
+
+            {vm.questionNotice && (
+              <div className={styles.notice}>
+                <FormMessage tone="info">{vm.questionNotice}</FormMessage>
+                <Button variant="secondary" onClick={vm.dismissQuestionNotice} aria-label="Cerrar aviso">
+                  ×
+                </Button>
+              </div>
+            )}
 
             {vm.details.questions.length === 0 ? (
               <p className={styles.muted}>Este cuestionario todavía no tiene preguntas.</p>
@@ -64,9 +70,27 @@ export function QuizDetailView() {
               <ol className={styles.questionList}>
                 {vm.details.questions.map((question) => (
                   <li key={question.id} className={styles.card}>
-                    <p className={styles.questionText}>
-                      <span className={styles.questionNumber}>{question.number}.</span> {question.text}
-                    </p>
+                    <div className={styles.questionHeader}>
+                      <p className={styles.questionText}>
+                        <span className={styles.questionNumber}>{question.number}.</span> {question.text}
+                      </p>
+                      <div className={styles.cardActions}>
+                        <Button
+                          variant="secondary"
+                          onClick={() => vm.openEditQuestion(question.id)}
+                          aria-label={`Editar la pregunta ${question.number}`}
+                        >
+                          Editar
+                        </Button>
+                        <Button
+                          variant="secondary"
+                          onClick={() => vm.askDeleteQuestion(question.id)}
+                          aria-label={`Eliminar la pregunta ${question.number}`}
+                        >
+                          Eliminar
+                        </Button>
+                      </div>
+                    </div>
                     <p className={styles.muted}>{question.meta}</p>
                     <ul className={styles.options}>
                       {question.options.map((option) => (
@@ -91,6 +115,14 @@ export function QuizDetailView() {
 
       <QuizFormDialog open={vm.editing} quiz={vm.quiz} onSaved={vm.closeEdit} onCancel={vm.closeEdit} />
 
+      <QuestionFormDialog
+        open={vm.questionEditorOpen}
+        quizId={quizId}
+        question={vm.editingQuestion}
+        onSaved={vm.saveQuestion}
+        onCancel={vm.cancelQuestionEditor}
+      />
+
       <ConfirmDialog
         open={vm.confirmingDelete}
         title="Eliminar cuestionario"
@@ -104,6 +136,21 @@ export function QuizDetailView() {
         <p>
           ¿Eliminar <strong>«{vm.details?.title}»</strong>? Se borran también sus preguntas. Esta acción no se
           puede deshacer.
+        </p>
+      </ConfirmDialog>
+
+      <ConfirmDialog
+        open={vm.confirmingDeleteQuestion}
+        title="Eliminar pregunta"
+        confirmLabel="Eliminar"
+        pendingLabel="Eliminando…"
+        pending={vm.deletingQuestion}
+        error={vm.deleteQuestionError}
+        onConfirm={vm.confirmDeleteQuestion}
+        onCancel={vm.cancelDeleteQuestion}
+      >
+        <p>
+          ¿Eliminar la pregunta <strong>«{vm.questionToDelete}»</strong>? Esta acción no se puede deshacer.
         </p>
       </ConfirmDialog>
     </section>

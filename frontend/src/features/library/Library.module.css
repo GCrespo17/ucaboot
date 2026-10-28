@@ -229,3 +229,95 @@
 .answer3 {
   background: var(--answer-green);
 }
+
+/* Formulario de pregunta */
+.optionFields {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: none;
+}
+
+.legend {
+  padding: 0;
+  font-weight: 600;
+}
+
+.optionField {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding-left: 0.75rem;
+  border-left: 4px solid;
+}
+
+.edge0 {
+  border-color: var(--answer-red);
+}
+
+.edge1 {
+  border-color: var(--answer-blue);
+}
+
+.edge2 {
+  border-color: var(--answer-yellow);
+}
+
+.edge3 {
+  border-color: var(--answer-green);
+}
+
+.optionShape {
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  margin-top: 1.75rem;
+  border-radius: var(--radius);
+  color: #fff;
+}
+
+.optionInput {
+  flex: 1;
+  min-width: 10rem;
+}
+
+.correctToggle {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  min-height: 2.75rem;
+  margin-top: 1.75rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.correctToggle input {
+  width: 1.25rem;
+  height: 1.25rem;
+  accent-color: var(--color-brand);
+}
+
+.formRow {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+  gap: 1rem;
+}
+
+.questionHeader {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+}
+
+.questionHeader .cardActions {
+  margin-top: 0;
+  padding-top: 0;
+}
