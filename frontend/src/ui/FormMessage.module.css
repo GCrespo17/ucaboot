@@ -1,0 +1,19 @@
+.message {
+  margin: 0;
+  padding: 0.75rem 1rem;
+  border-left: 4px solid;
+  border-radius: var(--radius);
+  font-size: 0.9375rem;
+}
+
+.error {
+  border-color: var(--color-danger);
+  background: #fdecea;
+  color: var(--color-danger);
+}
+
+.info {
+  border-color: var(--color-brand);
+  background: #f0eaf9;
+  color: var(--color-brand-strong);
+}
