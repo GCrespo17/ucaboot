@@ -3,6 +3,7 @@ import { cors } from "./controllers/middlewares/cors.js";
 import { errorHandler } from "./controllers/rest/errorHandler.js";
 import { quizzesRouter } from "./controllers/rest/routes/quizzes.js";
 import { roomsRouter } from "./controllers/rest/routes/rooms.js";
+import { requestLogger } from './controllers/middlewares/logger.js';
 import type { Container } from "./container.js";
 
 export function createApp(container: Container) {
@@ -13,6 +14,7 @@ export function createApp(container: Container) {
 
   app.use(cors);
   app.use(express.json());
+  app.use(requestLogger);
 
   app.get("/api/health", (_req, res) => res.json({ ok: true }));
 
