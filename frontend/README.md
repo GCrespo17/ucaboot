@@ -25,6 +25,22 @@ Una View importa su ViewModel y componentes de `ui/`. Un ViewModel importa de `m
 | `/anfitrion/cuestionarios/:quizId` | Editor de un cuestionario | Anfitrión |
 | `/anfitrion/sala/:pin` | Lobby y partida proyectada | Anfitrión |
 
+## Autenticación del anfitrión
+
+El anfitrión se registra e inicia sesión con Supabase Auth desde el navegador (HU-1.1 a HU-1.3). El backend no maneja contraseñas: solo verifica el token que el frontend le envía en `Authorization: Bearer …` y en el handshake del socket.
+
+| Pieza | Dónde | Qué hace |
+| --- | --- | --- |
+| Cliente | `model/auth/supabase.ts` | Cliente de Supabase y `getAccessToken()`. Es `null` si falta `VITE_SUPABASE_ANON_KEY` |
+| Sesión | `model/auth/session.ts` | `useSession()`: `cargando`, `activa` o `cerrada`. Se entera de cambios en otras pestañas |
+| Operaciones | `model/auth/authService.ts` | `signIn`, `signUp` y `signOut`, con errores traducidos (`authErrors.ts`) |
+| Reglas | `model/auth/credentials.ts` | Esquemas zod con la política de correo y contraseña de las specs |
+| Guardias | `app/guards.tsx` | `RequireHost` protege `/anfitrion/*` y `RedirectIfHost` saca de `/login` y `/registro` a quien ya tiene sesión |
+
+Sin sesión, `/anfitrion/*` lleva al login y, al entrar, vuelve a la pantalla pedida. Si la sesión se cierra estando adentro (botón Salir, otra pestaña o sesión vencida), lleva al inicio público.
+
+El Auth local de Docker Compose crea la cuenta sin confirmar el correo. En el proyecto de Supabase en la nube hay que desactivar **Confirm email** (Authentication → Sign In / Providers → Email) para que el registro entre directo, como pide la HU-1.1. Si queda activo, el registro avisa que se envió un correo de confirmación.
+
 ## Scripts
 
 ```bash
@@ -45,7 +61,7 @@ Vite **incrusta** las variables `VITE_*` en el build: son públicas y nunca debe
 | --- | --- | --- |
 | `VITE_API_URL` | URL pública del backend (REST y Socket.IO) | Mismo origen (`/api`, `/socket.io` vía nginx) |
 | `VITE_SUPABASE_URL` | URL del proyecto de Supabase | Mismo origen (`/auth/v1` vía nginx) |
-| `VITE_SUPABASE_ANON_KEY` | Clave pública (*anon*) del proyecto de Supabase | Obligatoria |
+| `VITE_SUPABASE_ANON_KEY` | Clave pública (*anon*) del proyecto de Supabase | La app carga, pero el inicio de sesión queda deshabilitado |
 
 En local las pasa Docker Compose desde el `.env` de la raíz. Para un despliegue fuera de Compose, la plantilla es [`.env.example`](.env.example).
 

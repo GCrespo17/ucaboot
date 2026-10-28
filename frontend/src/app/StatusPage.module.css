@@ -11,3 +11,8 @@
   margin: 0;
   color: var(--color-text-muted);
 }
+
+/* Sobre el fondo de marca de PublicLayout el gris no se lee: hereda el color del contenedor */
+.page .loading {
+  color: inherit;
+}
