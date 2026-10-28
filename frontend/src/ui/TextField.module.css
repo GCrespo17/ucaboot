@@ -41,3 +41,8 @@
 .error {
   color: var(--color-danger);
 }
+
+.textarea {
+  min-height: 6rem;
+  resize: vertical;
+}
