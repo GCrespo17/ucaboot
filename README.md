@@ -1,12 +1,7 @@
-# Integrantes:
--Gabriel Crespo
--Emmanuel Santiago
--Ainhoa Hurtado
--Gabriel Castellano
--Jose Ojeda
-
 # Ucaboot
 ### Plataforma de Cuestionarios Interactivos en Tiempo Real (Clon de Kahoot)
+
+**Aplicación desplegada:** https://ucaboot.vercel.app/
 
 [![CI/CD Pipeline](https://img.shields.io/badge/CI%2FCD-GitHub_Actions-blue?logo=github-actions)](https://github.com)
 [![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?logo=docker&logoColor=white)](https://www.docker.com/)
@@ -22,6 +17,14 @@
 * **Asignatura:** Computación en la Nube (INFO-02028)
 * **Semestre:** Septiembre 2026 – Enero 2027
 * **Profesor:** Jorge Rojas
+
+### Integrantes
+
+* Gabriel Crespo
+* Emmanuel Santiago
+* Ainhoa Hurtado
+* Gabriel Castellano
+* Jose Ojeda
 
 ---
 
@@ -131,7 +134,7 @@ Los anfitriones pueden acceder a un historial de las partidas que han organizado
 | Tiempo real | Socket.IO |
 | Autenticación | Supabase Auth (solo correo y contraseña) |
 | Persistencia | PostgreSQL con Drizzle ORM (local: Postgres 17; en la nube: Supabase) |
-| Estado efímero de salas | Redis 7 |
+| Estado efímero de salas | Redis 7 (en la nube: Redis Cloud) |
 | Validación | zod |
 | Correo en local | Mailpit (atrapa los correos de Supabase Auth) |
 | Pruebas | Vitest |
@@ -142,6 +145,63 @@ Los anfitriones pueden acceder a un historial de las partidas que han organizado
 ## Arquitectura
 
 Las decisiones completas y su justificación están en [`docs/arquitectura_inicial.md`](docs/arquitectura_inicial.md). Este es el resumen.
+
+### Despliegue en la nube
+
+La aplicación está publicada en https://ucaboot.vercel.app/.
+
+| Componente | Servicio | Modelo |
+| --- | --- | --- |
+| Frontend (React SPA) | Vercel | PaaS |
+| Backend (API REST y Socket.IO, contenedor Docker) | Render | PaaS |
+| Base de datos (PostgreSQL) | Supabase | DBaaS |
+| Autenticación | Supabase Auth | BaaS |
+| Caché del estado de las salas | Redis Cloud | DBaaS |
+
+```mermaid
+flowchart LR
+    Browser["Navegador<br/>(anfitrión y participantes)"]
+
+    subgraph Vercel["Vercel · PaaS"]
+        Frontend["Frontend React SPA"]
+    end
+
+    subgraph Render["Render · PaaS (contenedor Docker)"]
+        REST["API REST<br/>(CRUD y creación de salas)"]
+        WS["Servidor Socket.IO<br/>(salas y partida en vivo)"]
+    end
+
+    subgraph Supabase["Supabase"]
+        Auth["Supabase Auth · BaaS<br/>(identidad y JWT)"]
+        DB[("PostgreSQL · DBaaS<br/>(cuestionarios e historial)")]
+    end
+
+    subgraph RedisCloud["Redis Cloud · DBaaS"]
+        Redis[("Caché en memoria<br/>(salas, PIN y temporizadores)")]
+    end
+
+    subgraph CICD["CI/CD"]
+        GitHub["GitHub<br/>(repositorio)"]
+        Actions["GitHub Actions<br/>(pruebas y build)"]
+    end
+
+    Browser -->|"1. Carga la SPA (HTTPS)"| Frontend
+    Browser -->|"2. Inicia sesión y recibe el JWT"| Auth
+    Browser -->|"3. CRUD con JWT (HTTPS)"| REST
+    Browser <-->|"4. Juego en vivo (WebSocket)"| WS
+
+    REST -->|"Valida el JWT"| Auth
+    REST -->|"Lee y guarda cuestionarios"| DB
+    REST -->|"Crea la sala"| Redis
+    WS -->|"Lee y actualiza la partida"| Redis
+    WS -->|"Guarda el podio final"| DB
+
+    GitHub -->|"Push o PR"| Actions
+    GitHub -.->|"Despliegue automático"| Vercel
+    GitHub -.->|"Despliegue automático"| Render
+```
+
+Las flechas continuas son tráfico mientras la aplicación corre; las punteadas, el despliegue. Los números siguen el orden en que el navegador usa cada servicio. El anfitrión inicia sesión directamente con Supabase Auth, y el backend solo valida el JWT que recibe.
 
 ### Vista general (local)
 
