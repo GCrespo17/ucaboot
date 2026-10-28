@@ -1,5 +1,6 @@
-import React from 'react';
+import React, {useEffect} from 'react';
 import { useParticipantStore } from '../../model/participant/useParticipantStore'; 
+import { socket, setupParticipantSocketListeners, emitSubmitAnswer } from '../../model/realtime/socket';
 
 import { JoinScreen } from './JoinScreen'; 
 import { LobbyScreen } from './LobbyScreen'; 
@@ -17,9 +18,21 @@ export const ParticipantContainer: React.FC = () => {
         pin, 
         selectedOptionId, 
         lastRoundResult, 
-        finalResult, 
-        dispatch,
+        finalResult,
     } = useParticipantStore();
+
+    useEffect(() => { 
+      // Conectar socket y activar escuchas de eventos al montar la vista 
+      if (!socket.connected) { 
+        socket.connect(); 
+      } 
+      setupParticipantSocketListeners(); 
+      
+      // Exponer la instancia de Zustand en window solo durante desarrollo 
+      if (import.meta.env.DEV) { 
+        (window as unknown as { useParticipantStore: typeof useParticipantStore }).useParticipantStore = useParticipantStore; 
+      } 
+    }, []);
 
     const renderCurrentView = () => { 
     // 1. Unirse (sin pin)
@@ -36,16 +49,14 @@ export const ParticipantContainer: React.FC = () => {
     if (status === 'pregunta') {
       return (
         <QuestionScreen
-          onSelectOption={(optionId) =>
-            dispatch({ type: 'SUBMIT_ANSWER', payload: { optionId } })
-          }
+          onSelectOption={(optionId) => emitSubmitAnswer(optionId)}
         />
       );
     }
 
     // 4. Respuesta registrada
     if (status === 'respondí') {
-      return <SubmittedScreen selectedOption={selectedOptionId ?? undefined} />;
+      return <SubmittedScreen selectedOption={selectedOptionId || undefined} />;
     }
 
     // 5. Resultado de la ronda
@@ -66,7 +77,7 @@ export const ParticipantContainer: React.FC = () => {
         <GameOverScreen
           finalRank={finalResult.finalRank}
           totalScore={finalResult.totalScore}
-          onReset={() => dispatch({ type: 'RESET_GAME' })}
+          onReset={() => useParticipantStore.getState().dispatch({ type: 'RESET_GAME' })}
         />
       );
     }
