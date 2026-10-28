@@ -41,6 +41,26 @@ Sin sesión, `/anfitrion/*` lleva al login y, al entrar, vuelve a la pantalla pe
 
 El Auth local de Docker Compose crea la cuenta sin confirmar el correo. En el proyecto de Supabase en la nube hay que desactivar **Confirm email** (Authentication → Sign In / Providers → Email) para que el registro entre directo, como pide la HU-1.1. Si queda activo, el registro avisa que se envió un correo de confirmación.
 
+## Acceso al API
+
+Toda llamada al backend pasa por `apiFetch()` (`model/api/http.ts`): agrega `VITE_API_URL` y el token del anfitrión, y convierte el cuerpo de error del contrato (`{ error, message, fields }`) en un `ApiError` con `status`, `code` y `fields`. Un fallo de red llega como `status: 0`.
+
+| Capa | Dónde | Qué hace |
+| --- | --- | --- |
+| Tipos | `model/types/quiz.ts` | Formas de [`docs/contrato-api.md`](../docs/contrato-api.md), copiadas del contrato |
+| Rutas | `model/api/quizzes.ts` | Una función por ruta: `listQuizzes`, `getQuiz`, `createQuiz`, `updateQuiz`, `deleteQuiz` |
+| Caché | `model/quizzes/quizQueries.ts` | Hooks de TanStack Query (`useQuizzes`, `useQuiz` y mutaciones) que actualizan la lista y el detalle al guardar |
+
+Reglas comunes, en `app/AppProviders.tsx`:
+
+- Un **401** cierra la sesión local y `RequireHost` saca al anfitrión de sus pantallas.
+- Un error **4xx** no se reintenta; la red caída o un **5xx** se reintenta una vez.
+- Al cerrar sesión se vacía la caché, así otra cuenta en el mismo navegador no ve datos de la anterior.
+
+## Biblioteca de cuestionarios
+
+`features/library/` cubre HU-2.1 a HU-2.5: la lista en `/anfitrion/cuestionarios` (crear y eliminar) y el detalle en `/anfitrion/cuestionarios/:quizId` (ver preguntas, editar título y descripción, eliminar). Un cuestionario inexistente o de otra cuenta vuelve a la lista con un aviso. Crear, editar y borrar preguntas (HU-3.1 a HU-3.3) llega con el editor.
+
 ## Scripts
 
 ```bash
