@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { fieldErrors, loginSchema, PASSWORD_POLICY, registerSchema } from "./credentials";
+import { fieldErrors } from "../forms";
+import { loginSchema, PASSWORD_POLICY, registerSchema } from "./credentials";
 
 function registerErrors(input: { email: string; password: string; confirm: string }) {
   const result = registerSchema.safeParse(input);
