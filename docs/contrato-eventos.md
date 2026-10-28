@@ -198,6 +198,7 @@ interface PlayerRoomSnapshot {
 | `INVALID_OPTION` | `optionId` que no es de la pregunta | 6.2 FA3 |
 | `NOT_IN_ROSTER` | Participante fuera de la lista fijada | 6.2 FA4 |
 | `QUESTION_STILL_OPEN` | `host:next` con la recepción abierta | 7.4 FA3 |
+| `RATE_LIMITED` | `player:join` desde una IP con 30 PIN fallidos (`PIN_INVALID` o `PIN_NOT_FOUND`) en 10 min. Incluye `retryAfterSeconds`. En REST, más de 300 peticiones/min por IP o 10 salas/min por anfitrión | — (seguridad) |
 | `INTERNAL` | Excepción no prevista. El estado no cambia | FA de «fallo al…» |
 
 ## 7. Flujo de ejemplo

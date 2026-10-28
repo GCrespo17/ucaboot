@@ -9,7 +9,17 @@ export function registerPlayerHandlers(socket: GameSocket, container: Container)
   socket.on(
     "player:join",
     handle(container.logger, playerJoinPayload, async (payload) => {
-      const { room, player } = await container.playerService.join(payload);
+      const ip = socket.data.clientIp;
+      container.joinAttempts.assertAllowed(ip);
+
+      let joined;
+      try {
+        joined = await container.playerService.join(payload);
+      } catch (error) {
+        container.joinAttempts.recordFailure(ip, error);
+        throw error;
+      }
+      const { room, player } = joined;
 
       await leavePreviousRooms(socket);
       socket.data.player = { pin: room.pin, playerId: player.id };
