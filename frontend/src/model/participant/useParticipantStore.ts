@@ -14,3 +14,7 @@ export const useParticipantStore = create<ParticipantStore>((set) => ({
   ...initialParticipantState,
   dispatch: (action) => set((state) => participantReducer(state, action)),
 }));
+
+if (typeof window !== 'undefined') { 
+    (window as unknown as { useParticipantStore: typeof useParticipantStore }).useParticipantStore = useParticipantStore;
+}

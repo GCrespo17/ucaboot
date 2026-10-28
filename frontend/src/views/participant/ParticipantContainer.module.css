@@ -1,0 +1,48 @@
+/* Estilos base de las pantallas del participante. Antes estaban en index.css y
+   afectaban a toda la app; aquí solo aplican dentro de /jugar. :where() les da
+   especificidad 0, igual que a una regla global, así los .module.css de cada
+   pantalla los siguen sobrescribiendo. */
+:where(.root, .root *) {
+  margin: 0;
+  padding: 0;
+  box-sizing: content-box;
+}
+
+:where(.root) {
+  font: 18px/145% system-ui, "Segoe UI", Roboto, sans-serif;
+  letter-spacing: 0.18px;
+  color: #6b6375;
+}
+
+:where(.root) :where(h1, h2) {
+  font-weight: 500;
+  color: #08060d;
+}
+
+:where(.root) :where(h1) {
+  font-size: 56px;
+  letter-spacing: -1.68px;
+  margin: 32px 0;
+}
+
+:where(.root) :where(h2) {
+  font-size: 24px;
+  line-height: 118%;
+  letter-spacing: -0.24px;
+  margin: 0 0 8px;
+}
+
+@media (max-width: 1024px) {
+  :where(.root) {
+    font-size: 16px;
+  }
+
+  :where(.root) :where(h1) {
+    font-size: 36px;
+    margin: 20px 0;
+  }
+
+  :where(.root) :where(h2) {
+    font-size: 20px;
+  }
+}
