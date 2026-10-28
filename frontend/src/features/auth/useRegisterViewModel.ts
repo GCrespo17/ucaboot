@@ -2,7 +2,8 @@ import { useState, type FormEvent } from "react";
 import { useLocation } from "react-router-dom";
 import { AUTH_ERROR_MESSAGES } from "../../model/auth/authErrors";
 import { signUp } from "../../model/auth/authService";
-import { fieldErrors, PASSWORD_POLICY, registerSchema, type FieldErrors } from "../../model/auth/credentials";
+import { PASSWORD_POLICY, registerSchema } from "../../model/auth/credentials";
+import { fieldErrors, type FieldErrors } from "../../model/forms";
 import { isAuthConfigured } from "../../model/auth/supabase";
 
 type Field = "email" | "password" | "confirm";

@@ -2,6 +2,8 @@ import { createBrowserRouter, Navigate } from "react-router-dom";
 import { LoginView } from "../features/auth/LoginView";
 import { RegisterView } from "../features/auth/RegisterView";
 import { HomeView } from "../features/home/HomeView";
+import { LibraryView } from "../features/library/LibraryView";
+import { QuizDetailView } from "../features/library/QuizDetailView";
 import { RedirectIfHost, RequireHost } from "./guards";
 import { HostLayout } from "./layouts/HostLayout";
 import { PublicLayout } from "./layouts/PublicLayout";
@@ -34,8 +36,8 @@ export const router = createBrowserRouter([
         element: <HostLayout />,
         children: [
           { index: true, element: <Navigate to="cuestionarios" replace /> },
-          { path: "cuestionarios", element: <PendingPage title="Mis cuestionarios" /> },
-          { path: "cuestionarios/:quizId", element: <PendingPage title="Editor de cuestionario" /> },
+          { path: "cuestionarios", element: <LibraryView /> },
+          { path: "cuestionarios/:quizId", element: <QuizDetailView /> },
           { path: "sala/:pin", element: <PendingPage title="Sala de juego" /> },
         ],
       },

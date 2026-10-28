@@ -46,3 +46,12 @@
 .secondary:hover:not(:disabled) {
   background: #f0eaf9;
 }
+
+.danger {
+  background: var(--color-danger);
+  color: #fff;
+}
+
+.danger:hover:not(:disabled) {
+  background: #9f1f1f;
+}
