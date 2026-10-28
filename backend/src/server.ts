@@ -13,13 +13,16 @@ if (existsSync("./drizzle/meta/_journal.json")) {
   await migrate(db, { migrationsFolder: "./drizzle" });
 }
 
-const httpServer = createServer();
+// Express must be the server's request listener before Socket.IO attaches: engine.io wraps the
+// existing listeners so /socket.io/ requests never reach Express. A listener added afterwards
+// would also answer them, and the double response crashes Node (ERR_HTTP_HEADERS_SENT).
+// `app` is assigned before listen(), so no request can hit it uninitialized.
+const httpServer = createServer((req, res) => app(req, res));
 const io = createSocketServer(httpServer);
 const container = buildContainer(io);
+const app = createApp(container);
 
 registerSocketHandlers(io, container);
-
-httpServer.on("request", createApp(container));
 
 httpServer.listen(env.PORT, () => {
   container.logger.info("API listening", { port: env.PORT });

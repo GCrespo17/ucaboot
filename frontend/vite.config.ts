@@ -2,7 +2,8 @@ import { defineConfig, loadEnv } from "vite";
 import react from "@vitejs/plugin-react";
 
 export default defineConfig(({ command, mode }) => {
-  if (command === "build") return { plugins: [react()] };
+  // Build and Vitest (mode "test") don't start the dev server, so they don't need its port
+  if (command === "build" || mode === "test") return { plugins: [react()] };
 
   // Dev server behind nginx, which routes /api, /socket.io and /auth/v1
   const env = loadEnv(mode, process.cwd(), ''); 

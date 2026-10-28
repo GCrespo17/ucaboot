@@ -25,6 +25,53 @@ Una View importa su ViewModel y componentes de `ui/`. Un ViewModel importa de `m
 | `/anfitrion/cuestionarios/:quizId` | Editor de un cuestionario | Anfitrión |
 | `/anfitrion/sala/:pin` | Lobby y partida proyectada | Anfitrión |
 
+## Autenticación del anfitrión
+
+El anfitrión se registra e inicia sesión con Supabase Auth desde el navegador (HU-1.1 a HU-1.3). El backend no maneja contraseñas: solo verifica el token que el frontend le envía en `Authorization: Bearer …` y en el handshake del socket.
+
+| Pieza | Dónde | Qué hace |
+| --- | --- | --- |
+| Cliente | `model/auth/supabase.ts` | Cliente de Supabase y `getAccessToken()`. Es `null` si falta `VITE_SUPABASE_ANON_KEY` |
+| Sesión | `model/auth/session.ts` | `useSession()`: `cargando`, `activa` o `cerrada`. Se entera de cambios en otras pestañas |
+| Operaciones | `model/auth/authService.ts` | `signIn`, `signUp` y `signOut`, con errores traducidos (`authErrors.ts`) |
+| Reglas | `model/auth/credentials.ts` | Esquemas zod con la política de correo y contraseña de las specs |
+| Guardias | `app/guards.tsx` | `RequireHost` protege `/anfitrion/*` y `RedirectIfHost` saca de `/login` y `/registro` a quien ya tiene sesión |
+
+Sin sesión, `/anfitrion/*` lleva al login y, al entrar, vuelve a la pantalla pedida. Si la sesión se cierra estando adentro (botón Salir, otra pestaña o sesión vencida), lleva al inicio público.
+
+El Auth local de Docker Compose crea la cuenta sin confirmar el correo. En el proyecto de Supabase en la nube hay que desactivar **Confirm email** (Authentication → Sign In / Providers → Email) para que el registro entre directo, como pide la HU-1.1. Si queda activo, el registro avisa que se envió un correo de confirmación.
+
+## Acceso al API
+
+Toda llamada al backend pasa por `apiFetch()` (`model/api/http.ts`): agrega `VITE_API_URL` y el token del anfitrión, y convierte el cuerpo de error del contrato (`{ error, message, fields }`) en un `ApiError` con `status`, `code` y `fields`. Un fallo de red llega como `status: 0`.
+
+| Capa | Dónde | Qué hace |
+| --- | --- | --- |
+| Tipos | `model/types/quiz.ts` | Formas de [`docs/contrato-api.md`](../docs/contrato-api.md), copiadas del contrato |
+| Rutas | `model/api/quizzes.ts` | Una función por ruta: `listQuizzes`, `getQuiz`, `createQuiz`, `updateQuiz`, `deleteQuiz` |
+| Caché | `model/quizzes/quizQueries.ts` | Hooks de TanStack Query (`useQuizzes`, `useQuiz` y mutaciones) que actualizan la lista y el detalle al guardar |
+
+Reglas comunes, en `app/AppProviders.tsx`:
+
+- Un **401** cierra la sesión local y `RequireHost` saca al anfitrión de sus pantallas.
+- Un error **4xx** no se reintenta; la red caída o un **5xx** se reintenta una vez.
+- Al cerrar sesión se vacía la caché, así otra cuenta en el mismo navegador no ve datos de la anterior.
+
+## Biblioteca de cuestionarios
+
+`features/library/` cubre HU-2.1 a HU-2.5: la lista en `/anfitrion/cuestionarios` (crear y eliminar) y el detalle en `/anfitrion/cuestionarios/:quizId` (ver preguntas, editar título y descripción, eliminar). Un cuestionario inexistente o de otra cuenta vuelve a la lista con un aviso.
+
+## Editor de preguntas
+
+En el detalle del cuestionario se agregan, editan y eliminan preguntas (HU-3.1 a HU-3.3). El formulario es un diálogo con el texto, cuatro filas de opción (rojo, azul, amarillo y verde), el tiempo y el puntaje base. Las reglas están en `model/quizzes/questionForm.ts`:
+
+- Las filas vacías no cuentan como opción y no se envían. Hacen falta de 2 a 4 con texto y al menos una correcta.
+- Una fila marcada como correcta pero sin texto se señala como error.
+- El tiempo empieza en 20 segundos y el puntaje en 1000.
+- Al editar, si nada cambió, el diálogo se cierra sin llamar al API.
+
+Las opciones se envían en el orden del formulario, sin las filas vacías, y el servidor les asigna la posición que fija el color. Si se deja vacía la fila 3 y se llena la 4, esa opción queda en tercer lugar (amarillo).
+
 ## Scripts
 
 ```bash
@@ -45,7 +92,7 @@ Vite **incrusta** las variables `VITE_*` en el build: son públicas y nunca debe
 | --- | --- | --- |
 | `VITE_API_URL` | URL pública del backend (REST y Socket.IO) | Mismo origen (`/api`, `/socket.io` vía nginx) |
 | `VITE_SUPABASE_URL` | URL del proyecto de Supabase | Mismo origen (`/auth/v1` vía nginx) |
-| `VITE_SUPABASE_ANON_KEY` | Clave pública (*anon*) del proyecto de Supabase | Obligatoria |
+| `VITE_SUPABASE_ANON_KEY` | Clave pública (*anon*) del proyecto de Supabase | La app carga, pero el inicio de sesión queda deshabilitado |
 
 En local las pasa Docker Compose desde el `.env` de la raíz. Para un despliegue fuera de Compose, la plantilla es [`.env.example`](.env.example).
 

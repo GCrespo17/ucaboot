@@ -15,6 +15,10 @@ import { SystemClock } from "./infra/time/systemClock.js";
 import type { GameNotifier } from "./domain/ports/GameNotifier.js";
 import type { GameServer } from "./controllers/sockets/socket.js";
 import { SocketNotifier } from "./controllers/sockets/socketNotifier.js";
+import { JoinAttempts } from "./controllers/sockets/joinAttempts.js";
+import type { HealthCheck } from "./controllers/rest/routes/health.js";
+import { pingDatabase } from "./infra/db/health.js";
+import { FixedWindowLimiter } from "./infra/rateLimit/fixedWindowLimiter.js";
 import { PlayerService } from "./services/playerService.js";
 import { QuizService } from "./services/quizService.js";
 import { RoomService } from "./services/roomService.js";
@@ -37,7 +41,33 @@ export function buildContainer(io: GameServer) {
 
   const playerService = new PlayerService({ rooms, lock, clock, ids, notifier });
 
-  return { clock, logger, ids, lock, scheduler, quizzes, rooms, roomService, quizService, playerService };
+  // Abuse limits (per backend instance)
+  const limits = {
+    // Whole REST API per client IP: generous, only stops floods
+    api: new FixedWindowLimiter({ limit: 300, windowMs: 60_000, clock }),
+    // Opening rooms per host
+    roomCreation: new FixedWindowLimiter({ limit: 10, windowMs: 60_000, clock }),
+  };
+  // Failed PIN lookups per client IP: 30 every 10 min makes guessing one of 10^6 PINs impractical
+  const joinAttempts = new JoinAttempts(new FixedWindowLimiter({ limit: 30, windowMs: 10 * 60_000, clock }));
+
+  const healthChecks: Record<string, HealthCheck> = { database: pingDatabase };
+
+  return {
+    clock,
+    logger,
+    ids,
+    lock,
+    scheduler,
+    quizzes,
+    rooms,
+    roomService,
+    quizService,
+    playerService,
+    limits,
+    joinAttempts,
+    healthChecks,
+  };
 }
 
 export type Container = ReturnType<typeof buildContainer>;

@@ -6,6 +6,7 @@
 
 .header {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
@@ -23,6 +24,7 @@
 
 .nav {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 1rem;
 }
@@ -36,6 +38,29 @@
 .navLink:hover,
 .navLinkActive {
   color: var(--color-brand);
+}
+
+.account {
+  max-width: 16rem;
+  overflow: hidden;
+  color: var(--color-text-muted);
+  font-size: 0.875rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* En pantallas angostas el correo no cabe junto a los enlaces */
+@media (max-width: 40rem) {
+  .account {
+    display: none;
+  }
+}
+
+.headerError {
+  margin: 0;
+  padding: 0.75rem 1.5rem;
+  background: #fdecea;
+  color: var(--color-danger);
 }
 
 .main {

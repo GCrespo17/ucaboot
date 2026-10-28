@@ -13,6 +13,10 @@ const schema = z.object({
     .string()
     .default("")
     .transform((value) => value.split(",").map((origin) => origin.trim()).filter(Boolean)),
+  // Proxies in front of the backend that append to X-Forwarded-For (nginx locally, the
+  // platform's load balancer in the cloud). The client IP is read that many hops back;
+  // trusting more than the real count would let clients forge their IP and dodge rate limits.
+  TRUST_PROXY_HOPS: z.coerce.number().int().min(0).default(1),
 });
 
 export const env = schema.parse(process.env);
