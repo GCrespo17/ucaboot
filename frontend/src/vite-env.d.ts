@@ -7,7 +7,8 @@ interface ImportMetaEnv {
   // Supabase project URL. Unset = same origin (local Auth container behind nginx).
   readonly VITE_SUPABASE_URL?: string;
   // Supabase project's anon key (locally any value works)
-  readonly VITE_SUPABASE_ANON_KEY: string;
+  // Sin ella la app carga, pero el inicio de sesión queda deshabilitado
+  readonly VITE_SUPABASE_ANON_KEY?: string;
 }
 
 interface ImportMeta {
