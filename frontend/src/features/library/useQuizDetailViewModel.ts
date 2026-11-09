@@ -5,6 +5,7 @@ import { useDeleteQuestion, useDeleteQuiz, useQuiz } from "../../model/quizzes/q
 import type { Question } from "../../model/types/quiz";
 import type { LibraryNotice } from "./useLibraryViewModel";
 import { formatUpdatedAt, questionCountLabel } from "./formatUpdatedAt";
+import { useStartGame } from "./useStartGame";
 
 const LIBRARY = "/anfitrion/cuestionarios";
 const NOT_AVAILABLE: LibraryNotice = { notice: "Ese cuestionario no está disponible." };
@@ -13,11 +14,12 @@ const NOT_AVAILABLE: LibraryNotice = { notice: "Ese cuestionario no está dispon
 type QuestionEditor = "nueva" | Question | null;
 
 // HU-2.3 ver el detalle, HU-2.4 editar sus datos y HU-2.5 eliminarlo.
-// HU-3.1 a HU-3.3 agregar, editar y eliminar sus preguntas.
+// HU-3.1 a HU-3.3 agregar, editar y eliminar sus preguntas. HU-4.1 iniciar partida.
 export function useQuizDetailViewModel(quizId: string) {
   const navigate = useNavigate();
   const quiz = useQuiz(quizId);
   const deleteQuiz = useDeleteQuiz();
+  const startGame = useStartGame();
   const deleteQuestion = useDeleteQuestion(quizId);
   const [editing, setEditing] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
@@ -134,5 +136,10 @@ export function useQuizDetailViewModel(quizId: string) {
     confirmDeleteQuestion,
     questionNotice,
     dismissQuestionNotice: () => setQuestionNotice(null),
+
+    startGame,
+    startGameLabel: startGame.startingQuizId != null ? "Abriendo sala…" : "Iniciar partida",
+    startPending: startGame.startingQuizId != null,
+    startQuiz: () => startGame.start(quizId),
   };
 }

@@ -58,7 +58,18 @@ describe("apiFetch", () => {
     const error = await apiFetch("/api/quizzes").catch((e: unknown) => e);
 
     expect(error).toBeInstanceOf(ApiError);
-    expect(error).toMatchObject({ status: 400, code: "VALIDATION_ERROR", fields: { title: "TOO_LONG" } });
+    expect(error).toMatchObject({ status: 400, code: "VALIDATION_ERROR", fields: { title: "TOO_LONG" }, details: {} });
+  });
+
+  it("guarda los datos extra del cuerpo de error en details", async () => {
+    fetchMock.mockResolvedValue(
+      jsonResponse(409, { error: "HOST_HAS_OPEN_ROOM", message: "x", pin: "042137", quizId: "q2", phase: "lobby" }),
+    );
+
+    await expect(apiFetch("/api/rooms", { method: "POST", body: { quizId: "q1" } })).rejects.toMatchObject({
+      code: "HOST_HAS_OPEN_ROOM",
+      details: { pin: "042137", quizId: "q2", phase: "lobby" },
+    });
   });
 
   it("usa INTERNAL si el error no trae cuerpo JSON", async () => {
