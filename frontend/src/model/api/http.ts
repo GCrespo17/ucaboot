@@ -8,14 +8,23 @@ export class ApiError extends Error {
   readonly code: string;
   readonly fields: Record<string, string>;
   readonly retryAfterSeconds?: number;
+  // Datos extra del cuerpo de error, por ejemplo { pin, quizId, phase } en HOST_HAS_OPEN_ROOM
+  readonly details: Record<string, unknown>;
 
-  constructor(status: number, code: string, fields: Record<string, string> = {}, retryAfterSeconds?: number) {
+  constructor(
+    status: number,
+    code: string,
+    fields: Record<string, string> = {},
+    retryAfterSeconds?: number,
+    details: Record<string, unknown> = {},
+  ) {
     super(code);
     this.name = "ApiError";
     this.status = status;
     this.code = code;
     this.fields = fields;
     this.retryAfterSeconds = retryAfterSeconds;
+    this.details = details;
   }
 }
 
@@ -48,16 +57,18 @@ export async function apiFetch<T>(path: string, { method = "GET", body, signal }
   return (response.status === 204 ? undefined : await response.json()) as T;
 }
 
+const BASE_ERROR_KEYS = new Set(["error", "message", "fields", "retryAfterSeconds"]);
+
 async function toApiError(response: Response): Promise<ApiError> {
-  const data = (await response.json().catch(() => null)) as {
-    error?: unknown;
-    fields?: unknown;
-    retryAfterSeconds?: unknown;
-  } | null;
+  const data = (await response.json().catch(() => null)) as Record<string, unknown> | null;
   const code = typeof data?.error === "string" ? data.error : "INTERNAL";
   const fields = isStringRecord(data?.fields) ? data.fields : {};
   const retryAfter = typeof data?.retryAfterSeconds === "number" ? data.retryAfterSeconds : undefined;
-  return new ApiError(response.status, code, fields, retryAfter);
+  // El resto del cuerpo, sin las claves que ya tienen su propio campo
+  const details = Object.fromEntries(
+    Object.entries(data ?? {}).filter(([key]) => !BASE_ERROR_KEYS.has(key)),
+  );
+  return new ApiError(response.status, code, fields, retryAfter, details);
 }
 
 function isStringRecord(value: unknown): value is Record<string, string> {

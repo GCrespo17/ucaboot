@@ -72,6 +72,18 @@ En el detalle del cuestionario se agregan, editan y eliminan preguntas (HU-3.1 a
 
 Las opciones se envían en el orden del formulario, sin las filas vacías, y el servidor les asigna la posición que fija el color. Si se deja vacía la fila 3 y se llena la 4, esa opción queda en tercer lugar (amarillo).
 
+## Lobby del anfitrión
+
+"Iniciar partida", en la biblioteca y en el detalle, llama a `POST /api/rooms` y abre `/anfitrion/sala/:pin` (HU-4.1). Si ya había una sala de ese cuestionario, reutiliza su PIN. Si el cuestionario no tiene preguntas, o hay una sala abierta de otro cuestionario, un diálogo lo explica; en el segundo caso ofrece ir a esa sala.
+
+El lobby muestra el PIN grande, la dirección para unirse y los apodos en orden de entrada (HU-4.2 y HU-4.4). Junto al PIN hay un QR de `/jugar?pin=<PIN>` (HU-4.3): `/jugar` abre con el PIN escrito y el participante solo elige su apodo. El QR se genera en el navegador con `qrcode`, así el PIN no pasa por ningún servicio externo, y solo se muestra mientras la sala está en lobby. `model/rooms/useHostRoom.ts` lo mantiene al día por Socket.IO:
+
+- Al conectar y en cada reconexión emite `host:watch` y toma la sala del *ack*. Después aplica cada `lobby:updated`.
+- El socket es el mismo de `/jugar`. Al entrar al lobby se reconecta para que el *handshake* lleve el token del anfitrión, y al salir se desconecta.
+- Si la sala ya no existe, es de otra cuenta o la sesión venció, vuelve a la biblioteca con el motivo. Las salas viven en la memoria del backend: si el backend se reinicia, se pierden.
+
+"Comenzar" (HU-4.6) queda deshabilitado hasta que el backend tenga `host:start`.
+
 ## Scripts
 
 ```bash

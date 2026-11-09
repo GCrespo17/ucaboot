@@ -1,12 +1,14 @@
 import React, { useState } from 'react'; 
 import { useParticipantStore } from '../../model/participant/useParticipantStore';
+import { pinFromSearch } from '../../model/rooms/joinUrl';
 import  UcabootLogo  from "../../assets/Ucaboot.svg"; 
 import styles from './JoinScreen.module.css';
 
 export const JoinScreen: React.FC = () => { 
     const dispatch = useParticipantStore((state) => state.dispatch); 
     
-    const [pin, setPin] = useState(''); 
+    // El QR del lobby abre /jugar?pin=…: el PIN llega escrito y falta el apodo (HU-4.3)
+    const [pin, setPin] = useState(() => pinFromSearch(window.location.search));
     const [nickname, setNickname] = useState(''); 
     const [error, setError] = useState<string | null>(null);
 
