@@ -6,6 +6,7 @@ import { SHAPES } from "./answerShapes";
 import styles from "./Library.module.css";
 import { QuestionFormDialog } from "./QuestionFormDialog";
 import { QuizFormDialog } from "./QuizFormDialog";
+import { StartGameDialog } from "./StartGameDialog";
 import { useQuizDetailViewModel } from "./useQuizDetailViewModel";
 
 export function QuizDetailView() {
@@ -40,6 +41,9 @@ export function QuizDetailView() {
               <p className={styles.muted}>{vm.details.summary}</p>
             </div>
             <div className={styles.cardActions}>
+              <Button onClick={vm.startQuiz} disabled={vm.startPending}>
+                {vm.startGameLabel}
+              </Button>
               <Button variant="secondary" onClick={vm.openEdit}>
                 Editar datos
               </Button>
@@ -114,6 +118,8 @@ export function QuizDetailView() {
       )}
 
       <QuizFormDialog open={vm.editing} quiz={vm.quiz} onSaved={vm.closeEdit} onCancel={vm.closeEdit} />
+
+      <StartGameDialog startGame={vm.startGame} />
 
       <QuestionFormDialog
         open={vm.questionEditorOpen}

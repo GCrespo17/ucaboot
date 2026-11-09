@@ -5,6 +5,7 @@ import { FormMessage } from "../../ui/FormMessage";
 import { LinkButton } from "../../ui/LinkButton";
 import styles from "./Library.module.css";
 import { QuizFormDialog } from "./QuizFormDialog";
+import { StartGameDialog } from "./StartGameDialog";
 import { useLibraryViewModel } from "./useLibraryViewModel";
 
 export function LibraryView() {
@@ -63,6 +64,9 @@ export function LibraryView() {
                 {quiz.questions} · {quiz.updated}
               </p>
               <div className={styles.cardActions}>
+                <Button onClick={() => vm.startGame.start(quiz.id)} disabled={vm.startDisabled}>
+                  {quiz.starting ? "Abriendo sala…" : "Iniciar partida"}
+                </Button>
                 <LinkButton to={quiz.href} variant="secondary">
                   Abrir
                 </LinkButton>
@@ -74,6 +78,8 @@ export function LibraryView() {
           ))}
         </ul>
       )}
+
+      <StartGameDialog startGame={vm.startGame} />
 
       <QuizFormDialog open={vm.creating} onSaved={vm.onCreated} onCancel={vm.closeCreate} />
 
