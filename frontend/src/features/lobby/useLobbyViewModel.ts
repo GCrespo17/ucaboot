@@ -1,12 +1,15 @@
+import { joinUrl } from "../../model/rooms/joinUrl";
 import { useHostRoom } from "../../model/rooms/useHostRoom";
+import { useJoinQr } from "../../model/rooms/useJoinQr";
 import type { LibraryNotice } from "../library/useLibraryViewModel";
 
 const LIBRARY = "/anfitrion/cuestionarios";
 
-// HU-4.2 ver el lobby con el PIN y HU-4.4 ver los apodos que entran
+// HU-4.2 ver el lobby con el PIN, HU-4.3 el QR de unión y HU-4.4 los apodos que entran
 export function useLobbyViewModel(pin: string) {
   const state = useHostRoom(pin);
   const room = state.status === "lista" ? state.room : null;
+  const qr = useJoinQr(joinUrl(window.location.origin, room?.pin ?? pin));
 
   return {
     status: state.status,
@@ -18,6 +21,9 @@ export function useLobbyViewModel(pin: string) {
     pin: room?.pin ?? pin,
     // Sin protocolo: es lo que el participante escribe en el navegador del celular
     joinAddress: `${window.location.host}/jugar`,
+    // FA3: el QR solo se muestra mientras la sala está en lobby
+    showQr: room?.phase === "lobby",
+    qr,
     quizTitle: room?.quiz.title ?? "",
     questionsLabel: room ? questionsLabel(room.quiz.totalQuestions) : "",
     players: room?.players.map((player) => ({ id: player.playerId, nickname: player.nickname })) ?? [],
