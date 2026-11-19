@@ -61,6 +61,31 @@ export async function updateProfile(
   return { ok: true, emailPending: Boolean(changes.email) && data.user.email !== changes.email };
 }
 
+// othersClosed: false si la contraseña cambió pero no se pudieron cerrar las otras sesiones
+export type ChangePasswordResult = { ok: true; othersClosed: boolean } | AuthFailure;
+
+// HU-1.6. Confirma la contraseña actual (FA1), guarda la nueva y después cierra las demás
+// sesiones. Si el guardado falla, no se cierra ninguna (FA4). Esta sesión sigue abierta.
+export async function changePassword(email: string, current: string, password: string): Promise<ChangePasswordResult> {
+  if (!supabase) return NOT_CONFIGURED;
+
+  const verified = await supabase.auth.signInWithPassword({ email, password: current });
+  if (verified.error) return { ok: false, error: toAuthErrorCode(verified.error) };
+
+  const { error } = await supabase.auth.updateUser({ password });
+  if (error) return { ok: false, error: toAuthErrorCode(error) };
+
+  const closed = await closeOtherSessions();
+  return { ok: true, othersClosed: closed.ok };
+}
+
+// scope "others": revoca las sesiones de otros dispositivos y conserva la de este
+export async function closeOtherSessions(): Promise<AuthResult> {
+  if (!supabase) return NOT_CONFIGURED;
+  const { error } = await supabase.auth.signOut({ scope: "others" });
+  return error ? { ok: false, error: toAuthErrorCode(error) } : { ok: true };
+}
+
 export async function signOut(): Promise<AuthResult> {
   if (!supabase) return { ok: true };
   // scope "local": cierra la sesión de este dispositivo y no las de otros (HU-1.3)
