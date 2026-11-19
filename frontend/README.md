@@ -24,6 +24,7 @@ Una View importa su ViewModel y componentes de `ui/`. Un ViewModel importa de `m
 | `/anfitrion/cuestionarios` | Biblioteca de cuestionarios | Anfitrión |
 | `/anfitrion/cuestionarios/:quizId` | Editor de un cuestionario | Anfitrión |
 | `/anfitrion/sala/:pin` | Lobby y partida proyectada | Anfitrión |
+| `/anfitrion/cuenta` | Mi cuenta: nombre visible y correo | Anfitrión |
 
 ## Autenticación del anfitrión
 
@@ -40,6 +41,16 @@ El anfitrión se registra e inicia sesión con Supabase Auth desde el navegador 
 Sin sesión, `/anfitrion/*` lleva al login y, al entrar, vuelve a la pantalla pedida. Si la sesión se cierra estando adentro (botón Salir, otra pestaña o sesión vencida), lleva al inicio público.
 
 El Auth local de Docker Compose crea la cuenta sin confirmar el correo. En el proyecto de Supabase en la nube hay que desactivar **Confirm email** (Authentication → Sign In / Providers → Email) para que el registro entre directo, como pide la HU-1.1. Si queda activo, el registro avisa que se envió un correo de confirmación.
+
+### Mi cuenta
+
+En `/anfitrion/cuenta` (el nombre en el encabezado lleva ahí) el anfitrión edita su nombre visible y su correo (HU-1.5). Las reglas están en `model/auth/profile.ts`:
+
+- El nombre visible se guarda en `user_metadata.display_name` de Supabase y tiene de 2 a 40 caracteres. Si nunca se definió, es la parte local del correo. No es el apodo de un participante.
+- Cambiar el correo pide la contraseña actual: se comprueba iniciando sesión otra vez antes de guardar. Si el correo es de otra cuenta, Supabase lo rechaza y se marca el campo.
+- Sin cambios no se llama a Supabase.
+
+Supabase no cambia el correo al instante: envía un enlace de confirmación (en local llega a Mailpit, http://localhost:8025) y hasta abrirlo se sigue entrando con el correo anterior. Con **Secure email change** activo en la nube, el enlace llega al correo actual y al nuevo, y hay que abrir los dos. El enlace vuelve a Mi cuenta, así que `/anfitrion/cuenta` debe estar en las **Redirect URLs** del proyecto (Authentication → URL Configuration).
 
 ## Acceso al API
 
