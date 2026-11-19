@@ -1,5 +1,6 @@
 import { toAuthErrorCode, type AuthErrorCode } from "./authErrors";
 import type { Credentials } from "./credentials";
+import type { Profile } from "./profile";
 import { supabase } from "./supabase";
 
 type AuthFailure = { ok: false; error: AuthErrorCode };
@@ -29,6 +30,31 @@ export async function signUp({ email, password }: Credentials): Promise<SignUpRe
   // devuelve un usuario sin identidades y sin sesión
   if (!data.session && data.user?.identities?.length === 0) return { ok: false, error: "correoRegistrado" };
   return { ok: true, needsConfirmation: !data.session };
+}
+
+// emailPending: Supabase pide confirmar el correo nuevo antes de aplicarlo
+export type ProfileResult = { ok: true; emailPending: boolean } | AuthFailure;
+
+// HU-1.5. Si cambia el correo, primero se confirma la identidad con la contraseña actual (FA3);
+// después se guardan el nombre y el correo en una sola llamada.
+export async function updateProfile(
+  currentEmail: string,
+  changes: Partial<Profile>,
+  password: string,
+): Promise<ProfileResult> {
+  if (!supabase) return NOT_CONFIGURED;
+
+  if (changes.email) {
+    const { error } = await supabase.auth.signInWithPassword({ email: currentEmail, password });
+    if (error) return { ok: false, error: toAuthErrorCode(error) };
+  }
+
+  const { data, error } = await supabase.auth.updateUser({
+    email: changes.email,
+    data: changes.displayName ? { display_name: changes.displayName } : undefined,
+  });
+  if (error) return { ok: false, error: toAuthErrorCode(error) };
+  return { ok: true, emailPending: Boolean(changes.email) && data.user.email !== changes.email };
 }
 
 export async function signOut(): Promise<AuthResult> {

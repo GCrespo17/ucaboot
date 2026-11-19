@@ -3,7 +3,7 @@ import { z } from "zod";
 // Reglas de correo y contraseña de docs/specs/00-indice.md
 export const PASSWORD_POLICY = "Mínimo 8 caracteres, con al menos una letra y un número.";
 
-const email = z.string().trim().toLowerCase().min(1, "Escribe tu correo.").pipe(z.email("Escribe un correo válido."));
+export const email = z.string().trim().toLowerCase().min(1, "Escribe tu correo.").pipe(z.email("Escribe un correo válido."));
 
 export const loginSchema = z.object({
   email,
