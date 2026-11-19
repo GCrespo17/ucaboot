@@ -4,6 +4,7 @@ import { ConfirmDialog } from "../../ui/ConfirmDialog";
 import answerStyles from "../../ui/Answer.module.css";
 import { SHAPES } from "../../ui/answers";
 import { FormMessage } from "../../ui/FormMessage";
+import { LinkButton } from "../../ui/LinkButton";
 import styles from "./Library.module.css";
 import { QuestionFormDialog } from "./QuestionFormDialog";
 import { QuizFormDialog } from "./QuizFormDialog";
@@ -45,6 +46,15 @@ export function QuizDetailView() {
               <Button onClick={vm.startQuiz} disabled={vm.startPending}>
                 {vm.startGameLabel}
               </Button>
+              {vm.canPreview ? (
+                <LinkButton to={vm.previewPath} variant="secondary">
+                  Vista previa
+                </LinkButton>
+              ) : (
+                <Button variant="secondary" disabled title={vm.previewHint}>
+                  Vista previa
+                </Button>
+              )}
               <Button variant="secondary" onClick={vm.openEdit}>
                 Editar datos
               </Button>
