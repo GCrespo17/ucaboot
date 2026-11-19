@@ -1,0 +1,122 @@
+/* Lobby del anfitrión: pensado para verse de lejos en un proyector */
+.lobby {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.join {
+  padding: 1.5rem 1rem;
+  border-radius: var(--radius);
+  background: var(--color-brand);
+  color: #fff;
+  text-align: center;
+  box-shadow: var(--shadow);
+}
+
+.joinHint {
+  margin: 0;
+  color: inherit;
+  font-size: clamp(1rem, 2.5vw, 1.5rem);
+  overflow-wrap: anywhere;
+}
+
+.pinLabel {
+  margin: 1rem 0 0;
+  color: inherit;
+  font-size: 1rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  opacity: 0.85;
+}
+
+.pin {
+  margin: 0;
+  color: inherit;
+  font-size: clamp(3.5rem, 14vw, 8rem);
+  font-weight: 900;
+  line-height: 1.1;
+  letter-spacing: 0.08em;
+  font-variant-numeric: tabular-nums;
+}
+
+.header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.title {
+  font-size: 1.75rem;
+  overflow-wrap: anywhere;
+}
+
+.muted {
+  margin: 0.25rem 0 0;
+  color: var(--color-text-muted);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.players {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.playersTitle {
+  font-size: 1.375rem;
+}
+
+.count {
+  color: var(--color-text-muted);
+  font-weight: 600;
+}
+
+.waiting {
+  margin: 0;
+  padding: 2rem 1rem;
+  color: var(--color-text-muted);
+  font-size: 1.125rem;
+  text-align: center;
+}
+
+.playerList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.player {
+  padding: 0.5rem 1rem;
+  border-radius: 999px;
+  background: var(--color-surface);
+  box-shadow: var(--shadow);
+  font-size: 1.25rem;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+  animation: enter 0.25s ease-out;
+}
+
+@keyframes enter {
+  from {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .player {
+    animation: none;
+  }
+}

@@ -4,11 +4,11 @@ import { RegisterView } from "../features/auth/RegisterView";
 import { HomeView } from "../features/home/HomeView";
 import { LibraryView } from "../features/library/LibraryView";
 import { QuizDetailView } from "../features/library/QuizDetailView";
+import { LobbyView } from "../features/lobby/LobbyView";
 import { RedirectIfHost, RequireHost } from "./guards";
 import { HostLayout } from "./layouts/HostLayout";
 import { PublicLayout } from "./layouts/PublicLayout";
 import { NotFoundPage } from "./NotFoundPage";
-import { PendingPage } from "./PendingPage";
 import { ParticipantContainer } from "../views/participant/ParticipantContainer";
 
 // Cada pantalla tiene su ruta aquí. PendingPage marca las rutas cuya pantalla todavía no existe.
@@ -38,7 +38,7 @@ export const router = createBrowserRouter([
           { index: true, element: <Navigate to="cuestionarios" replace /> },
           { path: "cuestionarios", element: <LibraryView /> },
           { path: "cuestionarios/:quizId", element: <QuizDetailView /> },
-          { path: "sala/:pin", element: <PendingPage title="Sala de juego" /> },
+          { path: "sala/:pin", element: <LobbyView /> },
         ],
       },
     ],
