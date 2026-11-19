@@ -10,15 +10,18 @@ export const loginSchema = z.object({
   password: z.string().min(1, "Escribe tu contraseña."),
 });
 
+// Contraseña nueva: la usan el registro (HU-1.1) y el cambio de contraseña (HU-1.6)
+export const newPassword = z
+  .string()
+  .min(1, "Escribe una contraseña.")
+  .min(8, PASSWORD_POLICY)
+  .regex(/\p{L}/u, PASSWORD_POLICY)
+  .regex(/\d/, PASSWORD_POLICY);
+
 export const registerSchema = z
   .object({
     email,
-    password: z
-      .string()
-      .min(1, "Escribe una contraseña.")
-      .min(8, PASSWORD_POLICY)
-      .regex(/\p{L}/u, PASSWORD_POLICY)
-      .regex(/\d/, PASSWORD_POLICY),
+    password: newPassword,
     confirm: z.string().min(1, "Repite la contraseña."),
   })
   .superRefine(({ password, confirm }, ctx) => {
