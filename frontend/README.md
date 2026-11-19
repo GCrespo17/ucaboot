@@ -44,13 +44,20 @@ El Auth local de Docker Compose crea la cuenta sin confirmar el correo. En el pr
 
 ### Mi cuenta
 
-En `/anfitrion/cuenta` (el nombre en el encabezado lleva ahí) el anfitrión edita su nombre visible y su correo (HU-1.5). Las reglas están en `model/auth/profile.ts`:
+En `/anfitrion/cuenta` (el nombre en el encabezado lleva ahí) el anfitrión edita su nombre visible y su correo (HU-1.5) y cambia su contraseña (HU-1.6). Las reglas están en `model/auth/profile.ts`:
 
 - El nombre visible se guarda en `user_metadata.display_name` de Supabase y tiene de 2 a 40 caracteres. Si nunca se definió, es la parte local del correo. No es el apodo de un participante.
 - Cambiar el correo pide la contraseña actual: se comprueba iniciando sesión otra vez antes de guardar. Si el correo es de otra cuenta, Supabase lo rechaza y se marca el campo.
 - Sin cambios no se llama a Supabase.
 
 Supabase no cambia el correo al instante: envía un enlace de confirmación (en local llega a Mailpit, http://localhost:8025) y hasta abrirlo se sigue entrando con el correo anterior. Con **Secure email change** activo en la nube, el enlace llega al correo actual y al nuevo, y hay que abrir los dos. El enlace vuelve a Mi cuenta, así que `/anfitrion/cuenta` debe estar en las **Redirect URLs** del proyecto (Authentication → URL Configuration).
+
+Cambiar la contraseña (`model/auth/password.ts` y `changePassword()` en `authService.ts`):
+
+- Pide la actual, la nueva y su confirmación. La nueva sigue la misma política que el registro y debe ser distinta de la actual. Si la actual es incorrecta, se vacían los tres campos.
+- La actual se comprueba iniciando sesión otra vez; después se guarda la nueva con `updateUser({ password })` y se cierran las demás sesiones con `signOut({ scope: "others" })`. Esta sesión sigue abierta.
+- Si el guardado falla, no se cierra ninguna sesión. Si la contraseña cambió pero no se pudieron cerrar las otras sesiones, la pantalla ofrece reintentar solo ese paso.
+- Como el paso de comprobación deja una sesión recién iniciada, el cambio funciona aunque en la nube esté activo **Secure password change** (que pide reautenticarse cuando la sesión es vieja).
 
 ## Acceso al API
 
