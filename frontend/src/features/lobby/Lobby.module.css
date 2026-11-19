@@ -6,12 +6,47 @@
 }
 
 .join {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 1.5rem 2.5rem;
   padding: 1.5rem 1rem;
   border-radius: var(--radius);
   background: var(--color-brand);
   color: #fff;
   text-align: center;
   box-shadow: var(--shadow);
+}
+
+.joinText {
+  min-width: 0;
+}
+
+/* QR sobre fondo blanco: los lectores necesitan contraste, sobre todo proyectado */
+.qr {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  border-radius: var(--radius);
+  background: #fff;
+  color: var(--color-text);
+}
+
+.qrImage {
+  display: block;
+  width: clamp(9rem, 22vw, 14rem);
+  height: auto;
+  image-rendering: pixelated;
+}
+
+.qrNote {
+  max-width: 14rem;
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 0.875rem;
 }
 
 .joinHint {

@@ -17,15 +17,37 @@ export function LobbyView() {
       {vm.reconnecting && <FormMessage tone="info">Se perdió la conexión. Reconectando…</FormMessage>}
 
       <div className={styles.join}>
-        <p className={styles.joinHint}>
-          Entra a <strong>{vm.joinAddress}</strong> e ingresa el PIN
-        </p>
-        <p className={styles.pinLabel} id="lobby-titulo">
-          PIN del juego
-        </p>
-        <p className={styles.pin} aria-live="polite">
-          {vm.pin}
-        </p>
+        <div className={styles.joinText}>
+          <p className={styles.joinHint}>
+            Entra a <strong>{vm.joinAddress}</strong> e ingresa el PIN
+          </p>
+          <p className={styles.pinLabel} id="lobby-titulo">
+            PIN del juego
+          </p>
+          <p className={styles.pin} aria-live="polite">
+            {vm.pin}
+          </p>
+        </div>
+
+        {vm.showQr && (
+          <div className={styles.qr}>
+            {vm.qr.status === "listo" && (
+              <>
+                <img src={vm.qr.src} alt={`Código QR para unirse con el PIN ${vm.pin}`} className={styles.qrImage} />
+                <p className={styles.qrNote}>O escanea con la cámara</p>
+              </>
+            )}
+            {vm.qr.status === "generando" && <p className={styles.qrNote}>Generando QR…</p>}
+            {vm.qr.status === "error" && (
+              <>
+                <p className={styles.qrNote}>El QR no está disponible. Usa el PIN.</p>
+                <Button variant="secondary" onClick={vm.qr.retry}>
+                  Reintentar
+                </Button>
+              </>
+            )}
+          </div>
+        )}
       </div>
 
       {vm.status === "conectando" ? (
