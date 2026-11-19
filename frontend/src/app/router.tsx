@@ -1,4 +1,5 @@
 import { createBrowserRouter, Navigate } from "react-router-dom";
+import { AccountView } from "../features/account/AccountView";
 import { LoginView } from "../features/auth/LoginView";
 import { RegisterView } from "../features/auth/RegisterView";
 import { HomeView } from "../features/home/HomeView";
@@ -39,6 +40,7 @@ export const router = createBrowserRouter([
           { path: "cuestionarios", element: <LibraryView /> },
           { path: "cuestionarios/:quizId", element: <QuizDetailView /> },
           { path: "sala/:pin", element: <LobbyView /> },
+          { path: "cuenta", element: <AccountView /> },
         ],
       },
     ],
