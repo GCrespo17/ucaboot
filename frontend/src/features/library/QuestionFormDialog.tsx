@@ -1,4 +1,6 @@
 import type { Question } from "../../model/types/quiz";
+import answerStyles from "../../ui/Answer.module.css";
+import { SHAPES } from "../../ui/answers";
 import { Button } from "../../ui/Button";
 import { Dialog } from "../../ui/Dialog";
 import { DialogActions } from "../../ui/DialogActions";
@@ -6,7 +8,6 @@ import { FormMessage } from "../../ui/FormMessage";
 import { SelectField } from "../../ui/SelectField";
 import { TextArea } from "../../ui/TextArea";
 import { TextField } from "../../ui/TextField";
-import { SHAPES } from "./answerShapes";
 import styles from "./Library.module.css";
 import { useQuestionFormViewModel } from "./useQuestionFormViewModel";
 
@@ -51,7 +52,7 @@ function QuestionForm({ quizId, question, onSaved, onCancel }: Omit<QuestionForm
         {vm.errors.options && <FormMessage>{vm.errors.options}</FormMessage>}
         {vm.options.map((option) => (
           <div key={option.row} className={`${styles.optionField} ${styles[`edge${option.answer}`]}`}>
-            <span className={`${styles.optionShape} ${styles[`answer${option.answer}`]}`} aria-hidden="true">
+            <span className={`${styles.optionShape} ${answerStyles[`answer${option.answer}`]}`} aria-hidden="true">
               {SHAPES[option.answer]}
             </span>
             <div className={styles.optionInput}>

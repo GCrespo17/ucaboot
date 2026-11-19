@@ -1,0 +1,16 @@
+/* Colores de respuesta por posición (docs/contrato-eventos.md) */
+.answer0 {
+  background: var(--answer-red);
+}
+
+.answer1 {
+  background: var(--answer-blue);
+}
+
+.answer2 {
+  background: var(--answer-yellow);
+}
+
+.answer3 {
+  background: var(--answer-green);
+}
