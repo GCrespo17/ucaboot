@@ -5,6 +5,7 @@ import { HomeView } from "../features/home/HomeView";
 import { LibraryView } from "../features/library/LibraryView";
 import { QuizDetailView } from "../features/library/QuizDetailView";
 import { LobbyView } from "../features/lobby/LobbyView";
+import { PreviewView } from "../features/preview/PreviewView";
 import { RedirectIfHost, RequireHost } from "./guards";
 import { HostLayout } from "./layouts/HostLayout";
 import { PublicLayout } from "./layouts/PublicLayout";
@@ -38,6 +39,7 @@ export const router = createBrowserRouter([
           { index: true, element: <Navigate to="cuestionarios" replace /> },
           { path: "cuestionarios", element: <LibraryView /> },
           { path: "cuestionarios/:quizId", element: <QuizDetailView /> },
+          { path: "cuestionarios/:quizId/vista-previa", element: <PreviewView /> },
           { path: "sala/:pin", element: <LobbyView /> },
         ],
       },
