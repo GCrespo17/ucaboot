@@ -76,7 +76,7 @@ export function useProfileViewModel() {
     setNotice({
       tone: "info",
       text: result.emailPending
-        ? `Te enviamos un correo a ${next.email} para confirmar el cambio. Hasta entonces sigues entrando con ${saved.email}.`
+        ? `Para terminar el cambio, abre el enlace que te enviamos a ${next.email} (revisa también ${saved.email}). Hasta entonces sigues entrando con ${saved.email}.`
         : "Perfil guardado.",
     });
   }

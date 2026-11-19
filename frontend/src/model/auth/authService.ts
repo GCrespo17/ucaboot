@@ -49,10 +49,14 @@ export async function updateProfile(
     if (error) return { ok: false, error: toAuthErrorCode(error) };
   }
 
-  const { data, error } = await supabase.auth.updateUser({
-    email: changes.email,
-    data: changes.displayName ? { display_name: changes.displayName } : undefined,
-  });
+  // El enlace de confirmación del correo nuevo vuelve a Mi cuenta
+  const { data, error } = await supabase.auth.updateUser(
+    {
+      email: changes.email,
+      data: changes.displayName ? { display_name: changes.displayName } : undefined,
+    },
+    { emailRedirectTo: `${window.location.origin}/anfitrion/cuenta` },
+  );
   if (error) return { ok: false, error: toAuthErrorCode(error) };
   return { ok: true, emailPending: Boolean(changes.email) && data.user.email !== changes.email };
 }
