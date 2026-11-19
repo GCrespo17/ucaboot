@@ -2,11 +2,13 @@ import { Button } from "../../ui/Button";
 import { FormMessage } from "../../ui/FormMessage";
 import { TextField } from "../../ui/TextField";
 import styles from "./Account.module.css";
+import { useChangePasswordViewModel } from "./useChangePasswordViewModel";
 import { useProfileViewModel } from "./useProfileViewModel";
 
-// Datos de la cuenta del anfitrión. HU-1.5 perfil; aquí también irá el cambio de contraseña (HU-1.6).
+// Datos de la cuenta del anfitrión: perfil (HU-1.5) y contraseña (HU-1.6)
 export function AccountView() {
   const profile = useProfileViewModel();
+  const password = useChangePasswordViewModel();
 
   return (
     <section className={styles.page} aria-labelledby="cuenta-titulo">
@@ -57,6 +59,55 @@ export function AccountView() {
           )}
           <Button type="submit" className={styles.submit} disabled={profile.saving}>
             {profile.saving ? "Guardando…" : "Guardar"}
+          </Button>
+        </form>
+      </section>
+
+      <section className={styles.card} aria-labelledby="contrasena-titulo">
+        <div>
+          <h2 id="contrasena-titulo" className={styles.cardTitle}>
+            Contraseña
+          </h2>
+          <p className={styles.muted}>Al cambiarla se cierran tus sesiones en otros dispositivos; esta sigue abierta.</p>
+        </div>
+
+        <form className={styles.form} onSubmit={password.submit} noValidate>
+          {password.notice && <FormMessage tone={password.notice.tone}>{password.notice.text}</FormMessage>}
+          {password.othersOpen && (
+            <Button variant="secondary" className={styles.submit} onClick={password.retryCloseOthers} disabled={password.saving}>
+              Cerrar las otras sesiones
+            </Button>
+          )}
+          <TextField
+            label="Contraseña actual"
+            type="password"
+            name="current"
+            autoComplete="current-password"
+            value={password.values.current}
+            onChange={(event) => password.setField("current", event.target.value)}
+            error={password.errors.current}
+          />
+          <TextField
+            label="Contraseña nueva"
+            type="password"
+            name="newPassword"
+            autoComplete="new-password"
+            value={password.values.password}
+            onChange={(event) => password.setField("password", event.target.value)}
+            error={password.errors.password}
+            hint={password.passwordPolicy}
+          />
+          <TextField
+            label="Repite la contraseña nueva"
+            type="password"
+            name="confirm"
+            autoComplete="new-password"
+            value={password.values.confirm}
+            onChange={(event) => password.setField("confirm", event.target.value)}
+            error={password.errors.confirm}
+          />
+          <Button type="submit" className={styles.submit} disabled={password.saving}>
+            {password.saving ? "Cambiando…" : "Cambiar contraseña"}
           </Button>
         </form>
       </section>
