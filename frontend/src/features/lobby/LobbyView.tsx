@@ -1,16 +1,36 @@
 import { Navigate, useParams } from "react-router-dom";
+import { HostGameView } from "../game/HostGameView";
 import { Button } from "../../ui/Button";
 import { FormMessage } from "../../ui/FormMessage";
 import { LinkButton } from "../../ui/LinkButton";
 import styles from "./Lobby.module.css";
 import { useLobbyViewModel } from "./useLobbyViewModel";
 
-// Pantalla para proyectar mientras la clase entra a la sala
+// Pantalla de la sala para proyectar: el lobby mientras la clase entra y, al comenzar, la partida
 export function LobbyView() {
   const { pin = "" } = useParams();
   const vm = useLobbyViewModel(pin);
 
   if (vm.lostState) return <Navigate to={vm.libraryPath} replace state={vm.lostState} />;
+
+  // Hasta conectar no se sabe la fase: si la partida ya comenzó, no se debe mostrar el lobby con el PIN
+  if (vm.status === "conectando") {
+    return (
+      <p className={styles.waiting} aria-busy="true">
+        Conectando con la sala…
+      </p>
+    );
+  }
+
+  // Después de comenzar, la misma ruta muestra la partida (una recarga vuelve a la fase en curso)
+  if (vm.room && vm.phase !== "lobby") {
+    return (
+      <>
+        {vm.reconnecting && <FormMessage tone="info">Se perdió la conexión. Reconectando…</FormMessage>}
+        <HostGameView room={vm.room} clockOffset={vm.clockOffset} />
+      </>
+    );
+  }
 
   return (
     <section className={styles.lobby} aria-labelledby="lobby-titulo">
@@ -50,45 +70,39 @@ export function LobbyView() {
         )}
       </div>
 
-      {vm.status === "conectando" ? (
-        <p className={styles.waiting} aria-busy="true">
-          Conectando con la sala…
-        </p>
-      ) : (
-        <>
-          <header className={styles.header}>
-            <div>
-              <h1 className={styles.title}>{vm.quizTitle}</h1>
-              <p className={styles.muted}>{vm.questionsLabel}</p>
-            </div>
-            <div className={styles.actions}>
-              <LinkButton to={vm.libraryPath} variant="secondary">
-                Mis cuestionarios
-              </LinkButton>
-              <Button disabled={!vm.canStart} title={vm.startHint}>
-                Comenzar
-              </Button>
-            </div>
-          </header>
+      <header className={styles.header}>
+        <div>
+          <h1 className={styles.title}>{vm.quizTitle}</h1>
+          <p className={styles.muted}>{vm.questionsLabel}</p>
+        </div>
+        <div className={styles.actions}>
+          <LinkButton to={vm.libraryPath} variant="secondary">
+            Mis cuestionarios
+          </LinkButton>
+          <Button disabled={!vm.canStart} title={vm.startHint} onClick={vm.startGame}>
+            {vm.startLabel}
+          </Button>
+        </div>
+      </header>
 
-          <section aria-labelledby="participantes-titulo" className={styles.players}>
-            <h2 id="participantes-titulo" className={styles.playersTitle}>
-              Participantes <span className={styles.count}>{vm.countLabel}</span>
-            </h2>
-            {vm.players.length === 0 ? (
-              <p className={styles.waiting}>Esperando participantes…</p>
-            ) : (
-              <ul className={styles.playerList} aria-live="polite">
-                {vm.players.map((player) => (
-                  <li key={player.id} className={styles.player}>
-                    {player.nickname}
-                  </li>
-                ))}
-              </ul>
-            )}
-          </section>
-        </>
-      )}
+      {vm.startError && <FormMessage>{vm.startError}</FormMessage>}
+
+      <section aria-labelledby="participantes-titulo" className={styles.players}>
+        <h2 id="participantes-titulo" className={styles.playersTitle}>
+          Participantes <span className={styles.count}>{vm.countLabel}</span>
+        </h2>
+        {vm.players.length === 0 ? (
+          <p className={styles.waiting}>Esperando participantes… Podrás comenzar cuando entre el primero.</p>
+        ) : (
+          <ul className={styles.playerList} aria-live="polite">
+            {vm.players.map((player) => (
+              <li key={player.id} className={styles.player}>
+                {player.nickname}
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
     </section>
   );
 }
