@@ -1,12 +1,17 @@
 import { describe, expect, it } from "vitest";
+import { advance } from "../../src/domain/game/gameFlow.js";
 import type { Room } from "../../src/domain/game/model/room.js";
+import { standings } from "../../src/domain/game/standings.js";
+import type { PlayableQuiz } from "../../src/domain/quiz/playableQuiz.js";
+import type { QuizRepository } from "../../src/domain/ports/QuizRepository.js";
 import type { RoomStateStore } from "../../src/domain/ports/RoomStateStore.js";
 import { InMemoryRoomLock } from "../../src/infra/state/inMemoryRoomLock.js";
 import { InMemoryRoomStateStore } from "../../src/infra/state/inMemoryRoomStateStore.js";
 import { AppError } from "../../src/services/errors.js";
 import { GameService } from "../../src/services/gameService.js";
 import { PlayerService } from "../../src/services/playerService.js";
-import { T0, makeLobby, makeStartedRoom } from "../domain/fixtures.js";
+import { RoomService } from "../../src/services/roomService.js";
+import { T0, makeLobby, makeQuestion, makeQuiz, makeStartedRoom } from "../domain/fixtures.js";
 import { FakeClock, ManualScheduler, RecordingNotifier, SequenceIdGenerator } from "./fakes.js";
 
 function setup(store?: RoomStateStore) {
@@ -504,5 +509,233 @@ describe("GameService — cierre de respuestas (HU-6.3)", () => {
 
     expect((await rooms.get("123456"))?.phase).toBe("question");
     expect(scheduler.scheduledAt("round:123456")).toBe(T0 + 10_000);
+  });
+});
+
+describe("GameService — puntaje por velocidad (HU-6.4)", () => {
+  it("debe premiar más a quien acierta antes y dar 0 a incorrectas y ausentes", async () => {
+    const { rooms, clock, scheduler, gameService } = setup();
+    await rooms.insertIfAbsent(makeLobby(4));
+    await gameService.startGame("host1", "123456");
+
+    clock.set(T0 + 1_000);
+    await gameService.submitAnswer({ pin: "123456", playerId: "p3", questionIndex: 0, optionId: "b" });
+
+    clock.set(T0 + 2_000);
+    await gameService.submitAnswer({ pin: "123456", playerId: "p1", questionIndex: 0, optionId: "a" });
+
+    clock.set(T0 + 6_000);
+    await gameService.submitAnswer({ pin: "123456", playerId: "p2", questionIndex: 0, optionId: "a" });
+
+    // p4 does not answer
+    clock.set(T0 + 10_000);
+    await scheduler.runDue(clock.now());
+
+    const closed = await rooms.get("123456");
+    if (!closed) throw new Error("expected room");
+    const table = standings(closed);
+    expect(table.map((entry) => ({ id: entry.playerId, points: entry.totalScore, rank: entry.rank }))).toEqual([
+      { id: "p1", points: 800, rank: 1 },
+      { id: "p2", points: 400, rank: 2 },
+      { id: "p3", points: 0, rank: 3 },
+      { id: "p4", points: 0, rank: 4 },
+    ]);
+  });
+
+  it("debe sumar los puntos de varias preguntas usando el puntaje base y tiempo de cada una sin recalcular anteriores", async () => {
+    const { rooms, clock, gameService } = setup();
+    const lobby = makeLobby(2);
+    const q1 = makeQuestion({ id: "q1", basePoints: 1000, timeLimitSeconds: 10 });
+    const q2 = makeQuestion({ id: "q2", basePoints: 2000, timeLimitSeconds: 20 });
+    await rooms.insertIfAbsent({ ...lobby, quiz: { ...lobby.quiz, questions: [q1, q2] } });
+    await gameService.startGame("host1", "123456");
+
+    clock.set(T0 + 2_000);
+    await gameService.submitAnswer({ pin: "123456", playerId: "p1", questionIndex: 0, optionId: "a" });
+    clock.set(T0 + 5_000);
+    await gameService.submitAnswer({ pin: "123456", playerId: "p2", questionIndex: 0, optionId: "a" });
+
+    const afterRound0 = await rooms.get("123456");
+    if (!afterRound0) throw new Error("expected room");
+    const advanced = advance(afterRound0, 0, T0 + 10_000);
+    if (!advanced.ok) throw new Error("expected advance ok");
+    await rooms.save(advanced.room);
+
+    clock.set(T0 + 15_000);
+    await gameService.submitAnswer({ pin: "123456", playerId: "p2", questionIndex: 1, optionId: "a" });
+    clock.set(T0 + 20_000);
+    await gameService.submitAnswer({ pin: "123456", playerId: "p1", questionIndex: 1, optionId: "a" });
+
+    const afterRound1 = await rooms.get("123456");
+    if (!afterRound1) throw new Error("expected room");
+    expect(afterRound1.rounds[0]?.scores?.p1?.points).toBe(800);
+    expect(afterRound1.rounds[0]?.scores?.p2?.points).toBe(500);
+    expect(afterRound1.rounds[1]?.scores?.p2?.points).toBe(1500);
+    expect(afterRound1.rounds[1]?.scores?.p1?.points).toBe(1000);
+    expect(standings(afterRound1).map((entry) => ({ id: entry.playerId, total: entry.totalScore }))).toEqual([
+      { id: "p2", total: 2000 },
+      { id: "p1", total: 1800 },
+    ]);
+  });
+
+  it("debe puntuar cualquier opción marcada como correcta cuando hay varias", async () => {
+    const { rooms, clock, gameService } = setup();
+    const lobby = makeLobby(2);
+    const multiCorrect = makeQuestion({
+      options: [
+        { id: "a", text: "A", isCorrect: true },
+        { id: "b", text: "B", isCorrect: true },
+        { id: "c", text: "C", isCorrect: false },
+      ],
+    });
+    await rooms.insertIfAbsent({ ...lobby, quiz: { ...lobby.quiz, questions: [multiCorrect] } });
+    await gameService.startGame("host1", "123456");
+
+    clock.set(T0 + 3_000);
+    await gameService.submitAnswer({ pin: "123456", playerId: "p1", questionIndex: 0, optionId: "a" });
+    clock.set(T0 + 4_000);
+    await gameService.submitAnswer({ pin: "123456", playerId: "p2", questionIndex: 0, optionId: "b" });
+
+    const closed = await rooms.get("123456");
+    expect(closed?.rounds[0]?.scores?.p1).toMatchObject({ isCorrect: true, points: 700 });
+    expect(closed?.rounds[0]?.scores?.p2).toMatchObject({ isCorrect: true, points: 600 });
+  });
+
+  it("debe otorgar puntaje base completo al acertar en el primer instante (HU-6.4 FA1)", async () => {
+    const { rooms, gameService } = setup();
+    await rooms.insertIfAbsent(makeLobby(1));
+    await gameService.startGame("host1", "123456");
+
+    await gameService.submitAnswer({ pin: "123456", playerId: "p1", questionIndex: 0, optionId: "a" });
+
+    const closed = await rooms.get("123456");
+    expect(closed?.rounds[0]?.scores?.p1).toMatchObject({
+      isCorrect: true,
+      points: 1000,
+      responseMs: 0,
+    });
+  });
+
+  it("debe registrar acierto con 0 puntos si el redondeo da 0 (HU-6.4 FA2)", async () => {
+    const { rooms, clock, gameService } = setup();
+    const lobby = makeLobby(1);
+    const lowBaseQuestion = makeQuestion({ basePoints: 100, timeLimitSeconds: 30 });
+    await rooms.insertIfAbsent({
+      ...lobby,
+      quiz: { ...lobby.quiz, questions: [lowBaseQuestion] },
+    });
+    await gameService.startGame("host1", "123456");
+
+    clock.set(T0 + 29_999);
+    await gameService.submitAnswer({ pin: "123456", playerId: "p1", questionIndex: 0, optionId: "a" });
+
+    const closed = await rooms.get("123456");
+    if (!closed) throw new Error("expected room");
+    expect(closed.rounds[0]?.scores?.p1).toMatchObject({ isCorrect: true, points: 0, responseMs: 29_999 });
+    expect(standings(closed)[0]).toMatchObject({ playerId: "p1", totalScore: 0, correctCount: 1 });
+  });
+
+  it("debe usar la copia jugable aunque se edite el cuestionario vivo tras abrir la sala (HU-6.4 FA3)", async () => {
+    const { rooms, lock, clock, gameService, playerService } = setup();
+    let liveQuiz: PlayableQuiz = makeQuiz(1);
+    const mutableRepo: QuizRepository = {
+      async findPlayableQuiz(quizId, ownerId) {
+        return quizId === liveQuiz.quizId && ownerId === "host1" ? structuredClone(liveQuiz) : null;
+      },
+    };
+    const roomService = new RoomService({
+      quizzes: mutableRepo,
+      rooms,
+      lock,
+      clock,
+      ids: new SequenceIdGenerator(["123456"]),
+    });
+
+    await roomService.createRoom("host1", liveQuiz.quizId);
+    const joined = await playerService.join({ pin: "123456", nickname: "Ana" });
+
+    // Edit the live quiz after the room snapshot was taken
+    liveQuiz = {
+      ...liveQuiz,
+      questions: [makeQuestion({ basePoints: 2000, timeLimitSeconds: 30 })],
+    };
+
+    await gameService.startGame("host1", "123456");
+    clock.set(T0 + 2_000);
+    await gameService.submitAnswer({
+      pin: "123456",
+      playerId: joined.player.id,
+      questionIndex: 0,
+      optionId: "a",
+    });
+
+    const closed = await rooms.get("123456");
+    // Original snapshot had basePoints 1000 and timeLimitSeconds 10 -> 800, not 2000 * 28/30
+    expect(closed?.rounds[0]?.scores?.[joined.player.id]?.points).toBe(800);
+  });
+
+  it("debe otorgar los mismos puntos y puesto compartido ante un empate de tiempo sin bonificar el orden de entrada (HU-6.4 FA5)", async () => {
+    const { rooms, clock, gameService } = setup();
+    await rooms.insertIfAbsent(makeLobby(2));
+    await gameService.startGame("host1", "123456");
+
+    clock.set(T0 + 5_000);
+    await gameService.submitAnswer({ pin: "123456", playerId: "p2", questionIndex: 0, optionId: "a" });
+    await gameService.submitAnswer({ pin: "123456", playerId: "p1", questionIndex: 0, optionId: "a" });
+
+    const closed = await rooms.get("123456");
+    if (!closed) throw new Error("expected room");
+    expect(closed.rounds[0]?.scores?.p1?.points).toBe(500);
+    expect(closed.rounds[0]?.scores?.p2?.points).toBe(500);
+    // Shared rank 1; lobby join order (p1 before p2) decides display order only
+    expect(standings(closed).map((entry) => ({ id: entry.playerId, rank: entry.rank, total: entry.totalScore }))).toEqual([
+      { id: "p1", rank: 1, total: 500 },
+      { id: "p2", rank: 1, total: 500 },
+    ]);
+  });
+
+  it("debe conservar el total guardado al reconectar y acumularlo en la siguiente pregunta (HU-6.4 FA4)", async () => {
+    const { rooms, clock, gameService, playerService } = setup();
+    await rooms.insertIfAbsent(makeLobby(0));
+    const joined = await playerService.join({ pin: "123456", nickname: "Ana" });
+    await gameService.startGame("host1", "123456");
+
+    clock.set(T0 + 2_500);
+    await gameService.submitAnswer({
+      pin: "123456",
+      playerId: joined.player.id,
+      questionIndex: 0,
+      optionId: "a",
+    });
+
+    const reconnected = await playerService.join({
+      pin: "123456",
+      nickname: "OtherName",
+      token: joined.player.token,
+    });
+    expect(reconnected.resumed).toBe(true);
+    expect(standings(reconnected.room)[0]).toMatchObject({
+      playerId: joined.player.id,
+      totalScore: 750,
+    });
+
+    const advanced = advance(reconnected.room, 0, T0 + 10_000);
+    if (!advanced.ok) throw new Error("expected advance ok");
+    await rooms.save(advanced.room);
+
+    clock.set(T0 + 15_000);
+    await gameService.submitAnswer({
+      pin: "123456",
+      playerId: joined.player.id,
+      questionIndex: 1,
+      optionId: "a",
+    });
+
+    const afterRound1 = await rooms.get("123456");
+    if (!afterRound1) throw new Error("expected room");
+    expect(standings(afterRound1)[0]).toMatchObject({
+      playerId: joined.player.id,
+      totalScore: 750 + 500,
+    });
   });
 });
