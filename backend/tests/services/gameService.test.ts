@@ -310,3 +310,199 @@ describe("GameService.submitAnswer", () => {
     expect(notifier.notifications).toHaveLength(0);
   });
 });
+
+describe("GameService — cierre de respuestas (HU-6.3)", () => {
+  it("debe cerrar inmediatamente, calcular puntajes y cancelar el temporizador cuando todo el roster responde", async () => {
+    const { rooms, clock, scheduler, notifier, gameService } = setup();
+    await rooms.insertIfAbsent(makeLobby(2));
+    await gameService.startGame("host1", "123456");
+    notifier.notifications.length = 0;
+
+    clock.set(T0 + 2_000);
+    await gameService.submitAnswer({ pin: "123456", playerId: "p1", questionIndex: 0, optionId: "a" });
+    expect((await rooms.get("123456"))?.phase).toBe("question");
+    expect(scheduler.has("round:123456")).toBe(true);
+
+    clock.set(T0 + 4_000);
+    await gameService.submitAnswer({ pin: "123456", playerId: "p2", questionIndex: 0, optionId: "b" });
+
+    const closed = await rooms.get("123456");
+    expect(closed?.phase).toBe("reveal");
+    expect(closed?.rounds[0]?.closedAt).toBe(T0 + 4_000);
+    expect(closed?.rounds[0]?.scores).toMatchObject({
+      p1: { isCorrect: true, points: 800, responseMs: 2_000 },
+      p2: { isCorrect: false, points: 0, responseMs: 4_000 },
+    });
+    expect(scheduler.has("round:123456")).toBe(false);
+    expect(notifier.notifications).toEqual([
+      { method: "answerCountChanged", pin: "123456", phase: "question" },
+      { method: "answerCountChanged", pin: "123456", phase: "question" },
+    ]);
+  });
+
+  it("debe cerrar con respuestas vacías al vencer el tiempo si nadie responde (HU-6.3 FA1)", async () => {
+    const { rooms, clock, scheduler, gameService } = setup();
+    await rooms.insertIfAbsent(makeLobby(2));
+    await gameService.startGame("host1", "123456");
+
+    clock.set(T0 + 10_000);
+    await scheduler.runDue(clock.now());
+
+    const closed = await rooms.get("123456");
+    expect(closed?.phase).toBe("reveal");
+    expect(closed?.rounds[0]?.closedAt).toBe(T0 + 10_000);
+    expect(closed?.rounds[0]?.answers).toEqual({});
+    expect(closed?.rounds[0]?.scores).toEqual({});
+  });
+
+  it("debe aceptar una respuesta 1ms antes del cierre y rechazar después del cierre (HU-6.3 FA2)", async () => {
+    const { rooms, clock, scheduler, gameService } = setup();
+    await rooms.insertIfAbsent(makeLobby(2));
+    await gameService.startGame("host1", "123456");
+
+    clock.set(T0 + 9_999);
+    await gameService.submitAnswer({ pin: "123456", playerId: "p1", questionIndex: 0, optionId: "a" });
+
+    clock.set(T0 + 10_000);
+    await scheduler.runDue(clock.now());
+
+    expect(
+      await errorCodeOf(
+        gameService.submitAnswer({ pin: "123456", playerId: "p2", questionIndex: 0, optionId: "a" }),
+      ),
+    ).toBe("TOO_LATE");
+
+    const closed = await rooms.get("123456");
+    expect(closed?.rounds[0]?.scores?.p1?.isCorrect).toBe(true);
+    expect(closed?.rounds[0]?.scores?.p2).toBeUndefined();
+  });
+
+  it("debe esperar hasta el temporizador si un participante del roster no responde y cerrar igual (HU-6.3 FA3)", async () => {
+    const { rooms, clock, scheduler, gameService } = setup();
+    await rooms.insertIfAbsent(makeLobby(2));
+    await gameService.startGame("host1", "123456");
+
+    clock.set(T0 + 3_000);
+    await gameService.submitAnswer({ pin: "123456", playerId: "p1", questionIndex: 0, optionId: "a" });
+    expect((await rooms.get("123456"))?.phase).toBe("question");
+    expect(scheduler.has("round:123456")).toBe(true);
+
+    clock.set(T0 + 10_000);
+    await scheduler.runDue(clock.now());
+
+    const closed = await rooms.get("123456");
+    expect(closed?.phase).toBe("reveal");
+    expect(closed?.rounds[0]?.scores).toMatchObject({
+      p1: { isCorrect: true, points: 700, responseMs: 3_000 },
+    });
+    expect(closed?.rounds[0]?.scores?.p2).toBeUndefined();
+  });
+
+  it("no debe cancelar el temporizador ni notificar si falla al guardar la última respuesta", async () => {
+    const base = new InMemoryRoomStateStore();
+    await base.insertIfAbsent(makeLobby(1));
+    let shouldFailSave = false;
+    const store: RoomStateStore = {
+      get: (pin) => base.get(pin),
+      insertIfAbsent: (room) => base.insertIfAbsent(room),
+      save: async (room) => {
+        if (shouldFailSave) throw new Error("storage unavailable");
+        await base.save(room);
+      },
+      findOpenByHost: (hostId) => base.findOpenByHost(hostId),
+      findPlayerByToken: (token) => base.findPlayerByToken(token),
+    };
+    const { scheduler, notifier, gameService } = setup(store);
+    await gameService.startGame("host1", "123456");
+    notifier.notifications.length = 0;
+
+    shouldFailSave = true;
+    await expect(
+      gameService.submitAnswer({ pin: "123456", playerId: "p1", questionIndex: 0, optionId: "a" }),
+    ).rejects.toThrow("storage unavailable");
+
+    expect((await base.get("123456"))?.phase).toBe("question");
+    expect(scheduler.has("round:123456")).toBe(true);
+    expect(notifier.notifications).toHaveLength(0);
+  });
+
+  it("no debe volver a cerrar ni guardar si un temporizador rezagado corre tras el cierre anticipado", async () => {
+    const base = new InMemoryRoomStateStore();
+    await base.insertIfAbsent(makeLobby(1));
+    let saveCalls = 0;
+    const store: RoomStateStore = {
+      get: (pin) => base.get(pin),
+      insertIfAbsent: (room) => base.insertIfAbsent(room),
+      save: async (room) => {
+        saveCalls += 1;
+        await base.save(room);
+      },
+      findOpenByHost: (hostId) => base.findOpenByHost(hostId),
+      findPlayerByToken: (token) => base.findPlayerByToken(token),
+    };
+    let capturedTask: (() => Promise<void>) | null = null;
+    const clock = new FakeClock(T0);
+    const scheduler = new ManualScheduler();
+    const capturingScheduler = {
+      schedule(key: string, at: number, task: () => Promise<void>) {
+        capturedTask = task;
+        scheduler.schedule(key, at, task);
+      },
+      cancel(key: string) {
+        scheduler.cancel(key);
+      },
+    };
+    const gameService = new GameService({
+      rooms: store,
+      lock: new InMemoryRoomLock(),
+      clock,
+      scheduler: capturingScheduler,
+      notifier: new RecordingNotifier(),
+    });
+
+    await gameService.startGame("host1", "123456");
+    clock.set(T0 + 3_000);
+    await gameService.submitAnswer({ pin: "123456", playerId: "p1", questionIndex: 0, optionId: "a" });
+    const savesAfterEarlyClose = saveCalls;
+
+    // Simulate a timer callback that was already queued before cancel()
+    clock.set(T0 + 10_000);
+    if (!capturedTask) throw new Error("expected scheduled task");
+    await (capturedTask as () => Promise<void>)();
+
+    expect(saveCalls).toBe(savesAfterEarlyClose);
+    expect((await base.get("123456"))?.rounds[0]?.closedAt).toBe(T0 + 3_000);
+  });
+
+  it("no debe cerrar antes de closesAt si el temporizador se dispara temprano y debe reprogramar", async () => {
+    const rooms = new InMemoryRoomStateStore();
+    await rooms.insertIfAbsent(makeLobby(1));
+    let capturedTask: (() => Promise<void>) | null = null;
+    const clock = new FakeClock(T0);
+    const scheduler = new ManualScheduler();
+    const capturingScheduler = {
+      schedule(key: string, at: number, task: () => Promise<void>) {
+        capturedTask = task;
+        scheduler.schedule(key, at, task);
+      },
+      cancel(key: string) {
+        scheduler.cancel(key);
+      },
+    };
+    const gameService = new GameService({
+      rooms,
+      lock: new InMemoryRoomLock(),
+      clock,
+      scheduler: capturingScheduler,
+      notifier: new RecordingNotifier(),
+    });
+
+    await gameService.startGame("host1", "123456");
+    clock.set(T0 + 9_995);
+    if (!capturedTask) throw new Error("expected scheduled task");
+    await (capturedTask as () => Promise<void>)();
+
+    expect((await rooms.get("123456"))?.phase).toBe("question");
+    expect(scheduler.scheduledAt("round:123456")).toBe(T0 + 10_000);
+  });
+});

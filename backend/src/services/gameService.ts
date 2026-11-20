@@ -55,15 +55,21 @@ export class GameService {
       const room = await this.deps.rooms.get(input.pin);
       if (!room || room.phase === "closed") throw new AppError("PIN_NOT_FOUND");
 
+      const now = this.deps.clock.now();
       const result = submitAnswer(room, {
         playerId: input.playerId,
         questionIndex: input.questionIndex,
         optionId: input.optionId,
-        now: this.deps.clock.now(),
+        now,
       });
       if (!result.ok) throw new AppError(result.code);
 
-      await this.deps.rooms.save(result.room);
+      const roomToSave = result.allAnswered
+        ? closeQuestion(result.room, input.questionIndex, now).room
+        : result.room;
+      await this.deps.rooms.save(roomToSave);
+      if (result.allAnswered) this.deps.scheduler.cancel(roundTimerKey(input.pin));
+      // Emit with result.room (still in "question" phase) because toAnswerCountUpdate returns null in "reveal"
       this.deps.notifier.answerCountChanged(result.room);
       return { questionIndex: input.questionIndex, optionId: input.optionId };
     });
@@ -81,7 +87,17 @@ export class GameService {
     return this.deps.lock.run(`pin:${pin}`, async () => {
       const room = await this.deps.rooms.get(pin);
       if (!room) return;
-      const { room: closedRoom, closed } = closeQuestion(room, questionIndex, this.deps.clock.now());
+      const round = currentRound(room);
+      if (room.phase !== "question" || !round || round.questionIndex !== questionIndex) return;
+
+      const now = this.deps.clock.now();
+      // Guard against early timer wakeups: reschedule for the remaining time instead of closing early
+      if (now < round.closesAt) {
+        this.scheduleQuestionClose(room);
+        return;
+      }
+
+      const { room: closedRoom, closed } = closeQuestion(room, questionIndex, now);
       if (!closed) return;
       await this.deps.rooms.save(closedRoom);
     });

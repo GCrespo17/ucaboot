@@ -80,7 +80,7 @@ function buildTestContainer() {
     joinAttempts,
   } as unknown as Container;
 
-  return { container, clock, rooms, notifier };
+  return { container, clock, rooms, scheduler, notifier };
 }
 
 describe("socket handlers (HU-6.1 FA4 & HU-6.2)", () => {
@@ -140,5 +140,29 @@ describe("socket handlers (HU-6.1 FA4 & HU-6.2)", () => {
       optionId: "a",
     });
     expect(ack).toMatchObject({ ok: false, error: { code: "NOT_JOINED" } });
+  });
+
+  it("cierra la ronda aunque el anfitrión esté desconectado y muestra reveal al reconectar (HU-6.3 FA4)", async () => {
+    const { container, clock, rooms, scheduler } = buildTestContainer();
+    await rooms.insertIfAbsent(makeLobby(1));
+
+    const initialHost = createFakeSocket({ hostId: "host1" });
+    registerHostHandlers(initialHost.socket, container);
+    const startAck = await initialHost.invoke<HostRoomSnapshot>("host:start", { pin: "123456" });
+    expect(startAck.ok).toBe(true);
+
+    // Timer expires with no host connected
+    clock.set(T0 + 10_000);
+    await scheduler.runDue(clock.now());
+
+    // Host reconnects on a new socket
+    const reconnectedHost = createFakeSocket({ hostId: "host1" });
+    registerHostHandlers(reconnectedHost.socket, container);
+    const watchAck = await reconnectedHost.invoke<HostRoomSnapshot>("host:watch", { pin: "123456" });
+
+    expect(watchAck.ok).toBe(true);
+    if (!watchAck.ok) throw new Error("expected ok");
+    expect(watchAck.data.phase).toBe("reveal");
+    expect(watchAck.data.question).toBeNull();
   });
 });
