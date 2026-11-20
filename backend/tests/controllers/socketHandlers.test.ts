@@ -209,4 +209,73 @@ describe("socket handlers (HU-6.1 FA4 & HU-6.2)", () => {
       rank: 1,
     });
   });
+
+  it("rechaza host:next sin autenticación con UNAUTHORIZED", async () => {
+    const { container, rooms } = buildTestContainer();
+    await rooms.insertIfAbsent(makeLobby(1));
+
+    const socket = createFakeSocket({ hostId: null });
+    registerHostHandlers(socket.socket, container);
+
+    const ack = await socket.invoke<HostRoomSnapshot>("host:next", { pin: "123456", questionIndex: 0 });
+    expect(ack).toMatchObject({ ok: false, error: { code: "UNAUTHORIZED" } });
+  });
+
+  it("completa una partida hasta final y entrega FinalView y PlayerFinalResult al reconectar (HU-7.4 & HU-8.3)", async () => {
+    const { container, clock, rooms } = buildTestContainer();
+    await rooms.insertIfAbsent(makeLobby(0));
+
+    const hostSocket = createFakeSocket({ hostId: "host1" });
+    registerHostHandlers(hostSocket.socket, container);
+    const playerSocket = createFakeSocket();
+    registerPlayerHandlers(playerSocket.socket, container);
+
+    const joinAck = await playerSocket.invoke<PlayerJoinResult>("player:join", {
+      pin: "123456",
+      nickname: "Ana",
+    });
+    if (!joinAck.ok) throw new Error("expected join ok");
+
+    await hostSocket.invoke<HostRoomSnapshot>("host:start", { pin: "123456" });
+    clock.set(T0 + 2_000);
+    await playerSocket.invoke<PlayerAnswerAck>("player:answer", { questionIndex: 0, optionId: "a" });
+
+    clock.set(T0 + 12_000);
+    const q1Ack = await hostSocket.invoke<HostRoomSnapshot>("host:next", { pin: "123456", questionIndex: 0 });
+    expect(q1Ack.ok).toBe(true);
+    if (!q1Ack.ok) throw new Error("expected q1 ok");
+    expect(q1Ack.data.phase).toBe("question");
+    expect(q1Ack.data.question?.questionIndex).toBe(1);
+
+    clock.set(T0 + 15_000);
+    await playerSocket.invoke<PlayerAnswerAck>("player:answer", { questionIndex: 1, optionId: "a" });
+
+    clock.set(T0 + 28_000);
+    const finalAck = await hostSocket.invoke<HostRoomSnapshot>("host:next", { pin: "123456", questionIndex: 1 });
+    expect(finalAck.ok).toBe(true);
+    if (!finalAck.ok) throw new Error("expected final ok");
+    expect(finalAck.data.phase).toBe("final");
+    expect(finalAck.data.final).toEqual({
+      standings: [{ rank: 1, playerId: joinAck.data.playerId, nickname: "Ana", totalScore: 1500 }],
+      totalPlayers: 1,
+    });
+
+    // Player reconnects after game finished and sees their final rank and score (HU-8.3 FA1/FA2)
+    const reconnectedPlayer = createFakeSocket();
+    registerPlayerHandlers(reconnectedPlayer.socket, container);
+    const resumeAck = await reconnectedPlayer.invoke<PlayerJoinResult>("player:join", {
+      pin: "123456",
+      nickname: "Ana",
+      token: joinAck.data.token,
+    });
+    expect(resumeAck.ok).toBe(true);
+    if (!resumeAck.ok) throw new Error("expected resume ok");
+    expect(resumeAck.data.room.phase).toBe("final");
+    expect(resumeAck.data.room.final).toEqual({
+      nickname: "Ana",
+      totalScore: 1500,
+      finalRank: 1,
+      totalPlayers: 1,
+    });
+  });
 });

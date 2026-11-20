@@ -1,7 +1,7 @@
 import type { Room } from "../../domain/game/model/room.js";
 import type { GameNotifier } from "../../domain/ports/GameNotifier.js";
-import { toAnswerCountUpdate, toHostQuestionView, toRevealView } from "../../views/hostViews.js";
-import { toPlayerQuestionView, toPlayerRoundResults } from "../../views/playerViews.js";
+import { toAnswerCountUpdate, toFinalView, toHostQuestionView, toRevealView } from "../../views/hostViews.js";
+import { toPlayerFinalResults, toPlayerQuestionView, toPlayerRoundResults } from "../../views/playerViews.js";
 import { hostRoomName, playerRoomName, playersRoomName } from "./roomNames.js";
 import type { GameServer } from "./socket.js";
 
@@ -38,6 +38,16 @@ export class SocketNotifier implements GameNotifier {
 
     for (const { playerId, result } of toPlayerRoundResults(room)) {
       this.io.to(playerRoomName(playerId)).emit("round:result", result);
+    }
+  }
+
+  // Final standings go to the host; each roster player receives their own final rank and score (HU-7.4 FA1, HU-8.3)
+  gameFinished(room: Room): void {
+    const finalView = toFinalView(room);
+    if (finalView) this.io.to(hostRoomName(room.pin)).emit("game:finished", finalView);
+
+    for (const { playerId, result } of toPlayerFinalResults(room)) {
+      this.io.to(playerRoomName(playerId)).emit("game:over", result);
     }
   }
 }

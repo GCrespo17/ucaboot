@@ -6,4 +6,5 @@ export interface GameNotifier {
   questionOpened(room: Room, now: number): void;
   answerCountChanged(room: Room): void;
   roundClosed(room: Room): void;
+  gameFinished(room: Room): void;
 }

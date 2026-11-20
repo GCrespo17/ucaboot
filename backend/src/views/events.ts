@@ -84,6 +84,25 @@ export interface PlayerRoundResult {
   rank: number;
 }
 
+export interface Standing {
+  rank: number;
+  playerId: string;
+  nickname: string;
+  totalScore: number;
+}
+
+export interface FinalView {
+  standings: Standing[];
+  totalPlayers: number;
+}
+
+export interface PlayerFinalResult {
+  nickname: string;
+  totalScore: number;
+  finalRank: number;
+  totalPlayers: number;
+}
+
 export interface HostRoomSnapshot {
   pin: string;
   phase: Phase;
@@ -93,8 +112,7 @@ export interface HostRoomSnapshot {
   players: PlayerSummary[];
   question: HostQuestionView | null;
   reveal: RevealView | null;
-  // Filled in by the final step; null until then
-  final: null;
+  final: FinalView | null;
   serverNow: number;
 }
 
@@ -105,8 +123,7 @@ export interface PlayerRoomSnapshot {
   phase: Phase;
   question: PlayerQuestionView | null;
   result: PlayerRoundResult | null;
-  // Filled in by the final step; null until then
-  final: null;
+  final: PlayerFinalResult | null;
   serverNow: number;
 }
 
@@ -138,6 +155,7 @@ export interface PlayerAnswerAck {
 export interface ClientToServerEvents {
   "host:watch": (payload: unknown, ack: (response: Ack<HostRoomSnapshot>) => void) => void;
   "host:start": (payload: unknown, ack: (response: Ack<HostRoomSnapshot>) => void) => void;
+  "host:next": (payload: unknown, ack: (response: Ack<HostRoomSnapshot>) => void) => void;
   "player:join": (payload: unknown, ack: (response: Ack<PlayerJoinResult>) => void) => void;
   "player:answer": (payload: unknown, ack: (response: Ack<PlayerAnswerAck>) => void) => void;
 }
@@ -148,6 +166,8 @@ export interface ServerToClientEvents {
   "question:answerCount": (update: AnswerCountUpdate) => void;
   "question:revealed": (reveal: RevealView) => void;
   "round:result": (result: PlayerRoundResult) => void;
+  "game:finished": (final: FinalView) => void;
+  "game:over": (final: PlayerFinalResult) => void;
 }
 
 export interface SocketData {

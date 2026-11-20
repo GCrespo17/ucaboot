@@ -2,7 +2,8 @@ import { answerStyle } from "../domain/game/answerStyle.js";
 import type { Room } from "../domain/game/model/room.js";
 import { answeredCount, currentQuestion, currentRound } from "../domain/game/roomSelectors.js";
 import { optionCounts } from "../domain/game/roundSummary.js";
-import type { AnswerCountUpdate, HostQuestionView, HostRoomSnapshot, RevealView } from "./events.js";
+import { standings } from "../domain/game/standings.js";
+import type { AnswerCountUpdate, FinalView, HostQuestionView, HostRoomSnapshot, RevealView } from "./events.js";
 import { toViewPhase } from "./viewPhase.js";
 
 function activeRound(room: Room) {
@@ -76,6 +77,20 @@ export function toRevealView(room: Room): RevealView | null {
   };
 }
 
+export function toFinalView(room: Room): FinalView | null {
+  if (room.phase !== "final") return null;
+  const ranked = standings(room);
+  return {
+    standings: ranked.map(({ rank, playerId, nickname, totalScore }) => ({
+      rank,
+      playerId,
+      nickname,
+      totalScore,
+    })),
+    totalPlayers: ranked.length,
+  };
+}
+
 export function toHostRoomSnapshot(room: Room, now: number): HostRoomSnapshot {
   return {
     pin: room.pin,
@@ -89,7 +104,7 @@ export function toHostRoomSnapshot(room: Room, now: number): HostRoomSnapshot {
     players: room.players.map((player) => ({ playerId: player.id, nickname: player.nickname })),
     question: toHostQuestionView(room, now),
     reveal: toRevealView(room),
-    final: null,
+    final: toFinalView(room),
     serverNow: now,
   };
 }

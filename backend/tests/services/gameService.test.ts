@@ -795,3 +795,138 @@ describe("GameService — puntaje por velocidad (HU-6.4)", () => {
     });
   });
 });
+
+describe("GameService.nextQuestion (HU-7.4 & HU-8.3)", () => {
+  it("debe avanzar a la siguiente pregunta, conservar puntajes, programar temporizador y notificar", async () => {
+    const { rooms, clock, scheduler, notifier, gameService } = setup();
+    await rooms.insertIfAbsent(makeLobby(1));
+    await gameService.startGame("host1", "123456");
+
+    clock.set(T0 + 2_000);
+    await gameService.submitAnswer({ pin: "123456", playerId: "p1", questionIndex: 0, optionId: "a" });
+    notifier.notifications.length = 0;
+
+    clock.set(T0 + 12_000);
+    const next = await gameService.nextQuestion("host1", "123456", 0);
+
+    expect(next.phase).toBe("question");
+    expect(next.currentQuestionIndex).toBe(1);
+    expect(next.rounds[0]?.scores?.p1?.points).toBe(800);
+    expect(next.rounds[1]?.closesAt).toBe(T0 + 12_000 + 10_000);
+    expect(scheduler.scheduledAt("round:123456")).toBe(T0 + 12_000 + 10_000);
+    expect(notifier.notifications).toEqual([
+      { method: "questionOpened", pin: "123456", phase: "question", now: T0 + 12_000 },
+    ]);
+  });
+
+  it("debe pasar a final tras la última pregunta, emitir gameFinished y liberar al anfitrión (HU-7.4 FA1)", async () => {
+    const { rooms, clock, scheduler, notifier, gameService } = setup();
+    const lobby = makeLobby(1);
+    await rooms.insertIfAbsent({ ...lobby, quiz: { ...lobby.quiz, questions: lobby.quiz.questions.slice(0, 1) } });
+    await gameService.startGame("host1", "123456");
+
+    clock.set(T0 + 2_000);
+    await gameService.submitAnswer({ pin: "123456", playerId: "p1", questionIndex: 0, optionId: "a" });
+    notifier.notifications.length = 0;
+
+    clock.set(T0 + 12_000);
+    const finished = await gameService.nextQuestion("host1", "123456", 0);
+
+    expect(finished.phase).toBe("final");
+    expect(finished.finishedAt).toBe(T0 + 12_000);
+    expect(scheduler.has("round:123456")).toBe(false);
+    expect(await rooms.findOpenByHost("host1")).toBeNull();
+    expect(notifier.notifications).toEqual([
+      { method: "gameFinished", pin: "123456", phase: "final" },
+    ]);
+  });
+
+  it("debe ser idempotente ante doble avance sin saltar preguntas ni re-notificar (HU-7.4 FA2)", async () => {
+    const { rooms, clock, notifier, gameService } = setup();
+    await rooms.insertIfAbsent(makeLobby(1));
+    await gameService.startGame("host1", "123456");
+
+    clock.set(T0 + 2_000);
+    await gameService.submitAnswer({ pin: "123456", playerId: "p1", questionIndex: 0, optionId: "a" });
+
+    clock.set(T0 + 12_000);
+    const first = await gameService.nextQuestion("host1", "123456", 0);
+    notifier.notifications.length = 0;
+
+    clock.set(T0 + 13_000);
+    const duplicate = await gameService.nextQuestion("host1", "123456", 0);
+
+    expect(duplicate).toEqual(first);
+    expect(duplicate.currentQuestionIndex).toBe(1);
+    expect(notifier.notifications).toHaveLength(0);
+  });
+
+  it("debe rechazar con QUESTION_STILL_OPEN si la recepción sigue abierta (HU-7.4 FA3)", async () => {
+    const { rooms, notifier, gameService } = setup();
+    await rooms.insertIfAbsent(makeLobby(1));
+    await gameService.startGame("host1", "123456");
+    notifier.notifications.length = 0;
+
+    expect(await errorCodeOf(gameService.nextQuestion("host1", "123456", 0))).toBe("QUESTION_STILL_OPEN");
+    expect((await rooms.get("123456"))?.phase).toBe("question");
+    expect(notifier.notifications).toHaveLength(0);
+  });
+
+  it("debe permanecer en revelación aunque pase el tiempo sin que el anfitrión avance (HU-7.4 FA4)", async () => {
+    const { rooms, clock, scheduler, notifier, gameService } = setup();
+    await rooms.insertIfAbsent(makeLobby(1));
+    await gameService.startGame("host1", "123456");
+
+    clock.set(T0 + 10_000);
+    await scheduler.runDue(clock.now());
+    notifier.notifications.length = 0;
+
+    clock.set(T0 + 120_000);
+    await scheduler.runDue(clock.now());
+
+    const current = await rooms.get("123456");
+    expect(current?.phase).toBe("reveal");
+    expect(current?.currentQuestionIndex).toBe(0);
+    expect(notifier.notifications).toHaveLength(0);
+  });
+
+  it("debe mantener la revelación y los puntajes sin notificar si falla al guardar el avance (HU-7.4 FA5)", async () => {
+    const base = new InMemoryRoomStateStore();
+    await base.insertIfAbsent(makeLobby(1));
+    let shouldFailSave = false;
+    const store: RoomStateStore = {
+      get: (pin) => base.get(pin),
+      insertIfAbsent: (room) => base.insertIfAbsent(room),
+      save: async (room) => {
+        if (shouldFailSave) throw new Error("storage unavailable");
+        await base.save(room);
+      },
+      findOpenByHost: (hostId) => base.findOpenByHost(hostId),
+      findPlayerByToken: (token) => base.findPlayerByToken(token),
+    };
+    const { clock, scheduler, notifier, gameService } = setup(store);
+    await gameService.startGame("host1", "123456");
+    clock.set(T0 + 2_000);
+    await gameService.submitAnswer({ pin: "123456", playerId: "p1", questionIndex: 0, optionId: "a" });
+    notifier.notifications.length = 0;
+
+    shouldFailSave = true;
+    await expect(gameService.nextQuestion("host1", "123456", 0)).rejects.toThrow("storage unavailable");
+
+    const saved = await base.get("123456");
+    expect(saved?.phase).toBe("reveal");
+    expect(saved?.rounds[0]?.scores?.p1?.points).toBe(800);
+    expect(scheduler.has("round:123456")).toBe(false);
+    expect(notifier.notifications).toHaveLength(0);
+  });
+
+  it("debe rechazar PIN inexistente, sala cerrada y otro anfitrión al avanzar", async () => {
+    const { rooms, gameService } = setup();
+    await rooms.insertIfAbsent(makeLobby(1));
+    await rooms.insertIfAbsent({ ...makeLobby(1), pin: "654321", phase: "closed" });
+
+    expect(await errorCodeOf(gameService.nextQuestion("host1", "999999", 0))).toBe("PIN_NOT_FOUND");
+    expect(await errorCodeOf(gameService.nextQuestion("host1", "654321", 0))).toBe("PIN_NOT_FOUND");
+    expect(await errorCodeOf(gameService.nextQuestion("host2", "123456", 0))).toBe("NOT_ROOM_HOST");
+  });
+});

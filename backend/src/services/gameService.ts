@@ -1,5 +1,5 @@
 import { submitAnswer } from "../domain/game/answering.js";
-import { closeQuestion, startGame } from "../domain/game/gameFlow.js";
+import { advance, closeQuestion, startGame } from "../domain/game/gameFlow.js";
 import type { Room } from "../domain/game/model/room.js";
 import { currentRound } from "../domain/game/roomSelectors.js";
 import type { Clock } from "../domain/ports/Clock.js";
@@ -73,6 +73,30 @@ export class GameService {
       this.deps.notifier.answerCountChanged(result.room);
       if (result.allAnswered) this.deps.notifier.roundClosed(roomToSave);
       return { questionIndex: input.questionIndex, optionId: input.optionId };
+    });
+  }
+
+  nextQuestion(hostId: string, pin: string, fromQuestionIndex: number): Promise<Room> {
+    return this.deps.lock.run(`pin:${pin}`, async () => {
+      const room = await this.deps.rooms.get(pin);
+      if (!room || room.phase === "closed") throw new AppError("PIN_NOT_FOUND");
+      if (room.hostId !== hostId) throw new AppError("NOT_ROOM_HOST");
+
+      const now = this.deps.clock.now();
+      const result = advance(room, fromQuestionIndex, now);
+      if (!result.ok) throw new AppError(result.code);
+      // Idempotent: duplicate advance or stale questionIndex leaves the room untouched (HU-7.4 FA2)
+      if (!result.advanced) return room;
+
+      // Save first so a failure leaves the reveal intact without losing scores (HU-7.4 FA5)
+      await this.deps.rooms.save(result.room);
+      if (result.room.phase === "question") {
+        this.scheduleQuestionClose(result.room);
+        this.deps.notifier.questionOpened(result.room, now);
+      } else if (result.room.phase === "final") {
+        this.deps.notifier.gameFinished(result.room);
+      }
+      return result.room;
     });
   }
 

@@ -4,7 +4,7 @@ import type { Room } from "../domain/game/model/room.js";
 import type { RankedPlayer } from "../domain/game/ranking.js";
 import { currentQuestion, currentRound } from "../domain/game/roomSelectors.js";
 import { standings } from "../domain/game/standings.js";
-import type { PlayerQuestionView, PlayerRoomSnapshot, PlayerRoundResult } from "./events.js";
+import type { PlayerFinalResult, PlayerQuestionView, PlayerRoomSnapshot, PlayerRoundResult } from "./events.js";
 import { toViewPhase } from "./viewPhase.js";
 
 export function toPlayerQuestionView(room: Room, now: number, playerId?: string): PlayerQuestionView | null {
@@ -67,6 +67,33 @@ export function toPlayerRoundResults(room: Room): Array<{ playerId: string; resu
   return results;
 }
 
+function buildPlayerFinalResult(playerId: string, ranked: RankedPlayer[]): PlayerFinalResult | null {
+  const entry = ranked.find((candidate) => candidate.playerId === playerId);
+  if (!entry) return null;
+  return {
+    nickname: entry.nickname,
+    totalScore: entry.totalScore,
+    finalRank: entry.rank,
+    totalPlayers: ranked.length,
+  };
+}
+
+export function toPlayerFinalResult(room: Room, playerId: string): PlayerFinalResult | null {
+  if (room.phase !== "final") return null;
+  return buildPlayerFinalResult(playerId, standings(room));
+}
+
+export function toPlayerFinalResults(room: Room): Array<{ playerId: string; result: PlayerFinalResult }> {
+  if (room.phase !== "final") return [];
+  const ranked = standings(room);
+  const results: Array<{ playerId: string; result: PlayerFinalResult }> = [];
+  for (const playerId of room.rosterIds ?? []) {
+    const result = buildPlayerFinalResult(playerId, ranked);
+    if (result) results.push({ playerId, result });
+  }
+  return results;
+}
+
 export function toPlayerRoomSnapshot(room: Room, player: Player, now: number): PlayerRoomSnapshot {
   return {
     pin: room.pin,
@@ -74,7 +101,7 @@ export function toPlayerRoomSnapshot(room: Room, player: Player, now: number): P
     phase: toViewPhase(room),
     question: toPlayerQuestionView(room, now, player.id),
     result: toPlayerRoundResult(room, player.id),
-    final: null,
+    final: toPlayerFinalResult(room, player.id),
     serverNow: now,
   };
 }
