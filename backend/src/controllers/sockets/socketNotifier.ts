@@ -1,6 +1,8 @@
 import type { Room } from "../../domain/game/model/room.js";
 import type { GameNotifier } from "../../domain/ports/GameNotifier.js";
-import { hostRoomName } from "./roomNames.js";
+import { toHostQuestionView } from "../../views/hostViews.js";
+import { toPlayerQuestionView } from "../../views/playerViews.js";
+import { hostRoomName, playersRoomName } from "./roomNames.js";
 import type { GameServer } from "./socket.js";
 
 export class SocketNotifier implements GameNotifier {
@@ -13,5 +15,13 @@ export class SocketNotifier implements GameNotifier {
       count: room.players.length,
       maxPlayers: room.maxPlayers,
     });
+  }
+
+  questionOpened(room: Room, now: number): void {
+    const hostView = toHostQuestionView(room, now);
+    if (hostView) this.io.to(hostRoomName(room.pin)).emit("question:opened", hostView);
+
+    const playerView = toPlayerQuestionView(room, now);
+    if (playerView) this.io.to(playersRoomName(room.pin)).emit("question:opened", playerView);
   }
 }

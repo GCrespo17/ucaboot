@@ -9,10 +9,48 @@ export type Ack<T> =
   | { ok: false; error: { code: ErrorCode; message: string; details?: Record<string, unknown> } };
 
 export type Phase = "lobby" | "question" | "reveal" | "final";
+export type AnswerColor = "red" | "blue" | "yellow" | "green";
+export type AnswerShape = "triangle" | "diamond" | "circle" | "square";
 
 export interface PlayerSummary {
   playerId: string;
   nickname: string;
+}
+
+export interface HostQuestionOption {
+  id: string;
+  text: string;
+  color: AnswerColor;
+  shape: AnswerShape;
+}
+
+export interface HostQuestionView {
+  questionIndex: number;
+  totalQuestions: number;
+  text: string;
+  imageUrl: string | null;
+  options: HostQuestionOption[];
+  timeLimit: number;
+  closesAt: number;
+  serverNow: number;
+  answeredCount: number;
+  rosterSize: number;
+}
+
+export interface PlayerQuestionOption {
+  id: string;
+  color: AnswerColor;
+  shape: AnswerShape;
+}
+
+export interface PlayerQuestionView {
+  questionIndex: number;
+  totalQuestions: number;
+  options: PlayerQuestionOption[];
+  timeLimit: number;
+  closesAt: number;
+  serverNow: number;
+  answered: boolean;
 }
 
 export interface HostRoomSnapshot {
@@ -22,8 +60,8 @@ export interface HostRoomSnapshot {
   maxPlayers: number;
   // Order of accepted entry
   players: PlayerSummary[];
-  // Filled in by the round and results steps; null until then
-  question: null;
+  question: HostQuestionView | null;
+  // Filled in by the results steps; null until then
   reveal: null;
   final: null;
   serverNow: number;
@@ -34,8 +72,8 @@ export interface PlayerRoomSnapshot {
   // The accepted (normalized) nickname, not the one typed
   nickname: string;
   phase: Phase;
-  // Filled in by the round and results steps; null until then
-  question: null;
+  question: PlayerQuestionView | null;
+  // Filled in by the results steps; null until then
   result: null;
   final: null;
   serverNow: number;
@@ -57,11 +95,13 @@ export interface LobbyUpdate {
 
 export interface ClientToServerEvents {
   "host:watch": (payload: unknown, ack: (response: Ack<HostRoomSnapshot>) => void) => void;
+  "host:start": (payload: unknown, ack: (response: Ack<HostRoomSnapshot>) => void) => void;
   "player:join": (payload: unknown, ack: (response: Ack<PlayerJoinResult>) => void) => void;
 }
 
 export interface ServerToClientEvents {
   "lobby:updated": (update: LobbyUpdate) => void;
+  "question:opened": (question: HostQuestionView | PlayerQuestionView) => void;
 }
 
 export interface SocketData {

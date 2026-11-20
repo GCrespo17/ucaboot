@@ -3,7 +3,7 @@ import { AppError } from "../../services/errors.js";
 import { toHostRoomSnapshot } from "../../views/hostViews.js";
 import { handle } from "./ack.js";
 import { hostRoomName } from "./roomNames.js";
-import { hostWatchPayload } from "./schemas.js";
+import { hostStartPayload, hostWatchPayload } from "./schemas.js";
 import type { GameSocket } from "./socket.js";
 
 export function registerHostHandlers(socket: GameSocket, container: Container): void {
@@ -16,6 +16,17 @@ export function registerHostHandlers(socket: GameSocket, container: Container): 
 
       const room = await container.roomService.getHostRoom(hostId, pin);
       await socket.join(hostRoomName(pin));
+      return toHostRoomSnapshot(room, container.clock.now());
+    }),
+  );
+
+  socket.on(
+    "host:start",
+    handle(container.logger, hostStartPayload, async ({ pin }) => {
+      const hostId = socket.data.hostId;
+      if (!hostId) throw new AppError("UNAUTHORIZED");
+
+      const room = await container.gameService.startGame(hostId, pin);
       return toHostRoomSnapshot(room, container.clock.now());
     }),
   );

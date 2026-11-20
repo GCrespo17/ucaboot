@@ -35,6 +35,14 @@ describe("startGame", () => {
     expect(room).toEqual(snapshot);
   });
 
+  it("si la copia no tiene preguntas devuelve NO_VALID_QUESTIONS y no muta la sala (FA4)", () => {
+    const lobby = makeLobby(1);
+    const room = { ...lobby, quiz: { ...lobby.quiz, questions: [] } };
+    const snapshot = structuredClone(room);
+    expect(startGame(room, T0)).toEqual({ ok: false, code: "NO_VALID_QUESTIONS" });
+    expect(room).toEqual(snapshot);
+  });
+
   it("no muta la sala original", () => {
     const room = makeLobby(1);
     const snapshot = structuredClone(room);

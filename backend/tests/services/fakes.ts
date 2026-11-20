@@ -41,6 +41,10 @@ export class ManualScheduler implements Scheduler {
     return this.tasks.has(key);
   }
 
+  scheduledAt(key: string): number | undefined {
+    return this.tasks.get(key)?.at;
+  }
+
   async runDue(now: number): Promise<void> {
     for (const [key, { at, task }] of [...this.tasks]) {
       if (at > now) continue;
@@ -76,6 +80,7 @@ export interface Notification {
   method: keyof GameNotifier;
   pin: string;
   phase: Room["phase"];
+  now?: number;
 }
 
 export class RecordingNotifier implements GameNotifier {
@@ -83,6 +88,10 @@ export class RecordingNotifier implements GameNotifier {
 
   lobbyChanged(room: Room): void {
     this.notifications.push({ method: "lobbyChanged", pin: room.pin, phase: room.phase });
+  }
+
+  questionOpened(room: Room, now: number): void {
+    this.notifications.push({ method: "questionOpened", pin: room.pin, phase: room.phase, now });
   }
 }
 
