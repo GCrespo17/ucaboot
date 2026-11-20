@@ -1,8 +1,9 @@
 import type { Container } from "../../container.js";
+import { AppError } from "../../services/errors.js";
 import { toPlayerRoomSnapshot } from "../../views/playerViews.js";
 import { handle } from "./ack.js";
 import { playerRoomName, playersRoomName } from "./roomNames.js";
-import { playerJoinPayload } from "./schemas.js";
+import { playerAnswerPayload, playerJoinPayload } from "./schemas.js";
 import type { GameSocket } from "./socket.js";
 
 export function registerPlayerHandlers(socket: GameSocket, container: Container): void {
@@ -31,6 +32,22 @@ export function registerPlayerHandlers(socket: GameSocket, container: Container)
         nickname: player.nickname,
         room: toPlayerRoomSnapshot(room, player, container.clock.now()),
       };
+    }),
+  );
+
+  socket.on(
+    "player:answer",
+    handle(container.logger, playerAnswerPayload, async ({ questionIndex, optionId }) => {
+      // Room and player id come from socket.data (set by player:join), never from the payload
+      const joined = socket.data.player;
+      if (!joined) throw new AppError("NOT_JOINED");
+
+      return container.gameService.submitAnswer({
+        pin: joined.pin,
+        playerId: joined.playerId,
+        questionIndex,
+        optionId,
+      });
     }),
   );
 }

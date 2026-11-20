@@ -19,6 +19,7 @@ import { JoinAttempts } from "./controllers/sockets/joinAttempts.js";
 import type { HealthCheck } from "./controllers/rest/routes/health.js";
 import { pingDatabase } from "./infra/db/health.js";
 import { FixedWindowLimiter } from "./infra/rateLimit/fixedWindowLimiter.js";
+import { GameService } from "./services/gameService.js";
 import { PlayerService } from "./services/playerService.js";
 import { QuizService } from "./services/quizService.js";
 import { RoomService } from "./services/roomService.js";
@@ -38,8 +39,8 @@ export function buildContainer(io: GameServer) {
 
   const roomService = new RoomService({ quizzes, rooms, lock, clock, ids });
   const quizService = new QuizService({ catalog: quizStore, clock });
-
   const playerService = new PlayerService({ rooms, lock, clock, ids, notifier });
+  const gameService = new GameService({ rooms, lock, clock, scheduler, notifier });
 
   // Abuse limits (per backend instance)
   const limits = {
@@ -64,6 +65,7 @@ export function buildContainer(io: GameServer) {
     roomService,
     quizService,
     playerService,
+    gameService,
     limits,
     joinAttempts,
     healthChecks,

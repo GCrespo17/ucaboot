@@ -16,6 +16,7 @@ function openQuestion(room: Room, questionIndex: number, now: number): Room {
 export function startGame(room: Room, now: number): Result<{ room: Room }> {
   if (room.phase !== "lobby") return { ok: false, code: "GAME_ALREADY_STARTED" };
   if (room.players.length === 0) return { ok: false, code: "NO_PLAYERS" };
+  if (room.quiz.questions.length === 0) return { ok: false, code: "NO_VALID_QUESTIONS" };
   const rosterIds = room.players.map((player) => player.id);
   return { ok: true, room: openQuestion({ ...room, rosterIds }, 0, now) };
 }

@@ -7,7 +7,7 @@ import { InMemoryRoomStateStore } from "../../src/infra/state/inMemoryRoomStateS
 import { AppError } from "../../src/services/errors.js";
 import { RoomService } from "../../src/services/roomService.js";
 import { toHostRoomSnapshot } from "../../src/views/hostViews.js";
-import { T0, makeLobby, makeQuiz } from "../domain/fixtures.js";
+import { T0, makeLobby, makeQuiz, makeStartedRoom } from "../domain/fixtures.js";
 import { FakeClock, SequenceIdGenerator } from "./fakes.js";
 
 function setup(pins?: readonly string[]) {
@@ -142,6 +142,21 @@ describe("RoomService.getHostRoom", () => {
     await rooms.insertIfAbsent({ ...makeLobby(0), phase: "final" });
 
     expect((await service.getHostRoom("host1", "123456")).phase).toBe("final");
+  });
+
+  it("debe devolver la ronda en curso con el mismo closesAt y serverNow actualizado al recargar (HU-6.1 FA2)", async () => {
+    const { service, rooms } = setup();
+    const running = makeStartedRoom(2);
+    await rooms.insertIfAbsent(running);
+
+    const fetched = await service.getHostRoom("host1", "123456");
+    const snapshot = toHostRoomSnapshot(fetched, T0 + 4_000);
+
+    expect(snapshot.phase).toBe("question");
+    expect(snapshot.question?.closesAt).toBe(T0 + 10_000);
+    expect(snapshot.question?.serverNow).toBe(T0 + 4_000);
+    expect(snapshot.question?.answeredCount).toBe(0);
+    expect(snapshot.question?.rosterSize).toBe(2);
   });
 });
 

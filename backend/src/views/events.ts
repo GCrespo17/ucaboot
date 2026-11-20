@@ -9,10 +9,98 @@ export type Ack<T> =
   | { ok: false; error: { code: ErrorCode; message: string; details?: Record<string, unknown> } };
 
 export type Phase = "lobby" | "question" | "reveal" | "final";
+export type AnswerColor = "red" | "blue" | "yellow" | "green";
+export type AnswerShape = "triangle" | "diamond" | "circle" | "square";
 
 export interface PlayerSummary {
   playerId: string;
   nickname: string;
+}
+
+export interface HostQuestionOption {
+  id: string;
+  text: string;
+  color: AnswerColor;
+  shape: AnswerShape;
+}
+
+export interface HostQuestionView {
+  questionIndex: number;
+  totalQuestions: number;
+  text: string;
+  imageUrl: string | null;
+  options: HostQuestionOption[];
+  timeLimit: number;
+  closesAt: number;
+  serverNow: number;
+  answeredCount: number;
+  rosterSize: number;
+}
+
+export interface PlayerQuestionOption {
+  id: string;
+  color: AnswerColor;
+  shape: AnswerShape;
+}
+
+export interface PlayerQuestionView {
+  questionIndex: number;
+  totalQuestions: number;
+  options: PlayerQuestionOption[];
+  timeLimit: number;
+  closesAt: number;
+  serverNow: number;
+  answered: boolean;
+}
+
+export interface RevealOption {
+  id: string;
+  text: string;
+  color: AnswerColor;
+  shape: AnswerShape;
+  isCorrect: boolean;
+  count: number;
+}
+
+export interface RevealView {
+  questionIndex: number;
+  totalQuestions: number;
+  text: string;
+  imageUrl: string | null;
+  options: RevealOption[];
+  noAnswerCount: number;
+  rosterSize: number;
+  isLastQuestion: boolean;
+}
+
+export type RoundOutcome = "correct" | "incorrect" | "noAnswer";
+
+export interface PlayerRoundResult {
+  questionIndex: number;
+  outcome: RoundOutcome;
+  isCorrect: boolean;
+  scoreGained: number;
+  totalScore: number;
+  rank: number;
+}
+
+export interface Standing {
+  rank: number;
+  playerId: string;
+  nickname: string;
+  totalScore: number;
+}
+
+export interface FinalView {
+  standings: Standing[];
+  totalPlayers: number;
+}
+
+export interface PlayerFinalResult {
+  nickname: string;
+  totalScore: number;
+  finalRank: number;
+  totalPlayers: number;
 }
 
 export interface HostRoomSnapshot {
@@ -22,10 +110,9 @@ export interface HostRoomSnapshot {
   maxPlayers: number;
   // Order of accepted entry
   players: PlayerSummary[];
-  // Filled in by the round and results steps; null until then
-  question: null;
-  reveal: null;
-  final: null;
+  question: HostQuestionView | null;
+  reveal: RevealView | null;
+  final: FinalView | null;
   serverNow: number;
 }
 
@@ -34,10 +121,9 @@ export interface PlayerRoomSnapshot {
   // The accepted (normalized) nickname, not the one typed
   nickname: string;
   phase: Phase;
-  // Filled in by the round and results steps; null until then
-  question: null;
-  result: null;
-  final: null;
+  question: PlayerQuestionView | null;
+  result: PlayerRoundResult | null;
+  final: PlayerFinalResult | null;
   serverNow: number;
 }
 
@@ -55,13 +141,33 @@ export interface LobbyUpdate {
   maxPlayers: number;
 }
 
+export interface AnswerCountUpdate {
+  questionIndex: number;
+  answeredCount: number;
+  rosterSize: number;
+}
+
+export interface PlayerAnswerAck {
+  questionIndex: number;
+  optionId: string;
+}
+
 export interface ClientToServerEvents {
   "host:watch": (payload: unknown, ack: (response: Ack<HostRoomSnapshot>) => void) => void;
+  "host:start": (payload: unknown, ack: (response: Ack<HostRoomSnapshot>) => void) => void;
+  "host:next": (payload: unknown, ack: (response: Ack<HostRoomSnapshot>) => void) => void;
   "player:join": (payload: unknown, ack: (response: Ack<PlayerJoinResult>) => void) => void;
+  "player:answer": (payload: unknown, ack: (response: Ack<PlayerAnswerAck>) => void) => void;
 }
 
 export interface ServerToClientEvents {
   "lobby:updated": (update: LobbyUpdate) => void;
+  "question:opened": (question: HostQuestionView | PlayerQuestionView) => void;
+  "question:answerCount": (update: AnswerCountUpdate) => void;
+  "question:revealed": (reveal: RevealView) => void;
+  "round:result": (result: PlayerRoundResult) => void;
+  "game:finished": (final: FinalView) => void;
+  "game:over": (final: PlayerFinalResult) => void;
 }
 
 export interface SocketData {
