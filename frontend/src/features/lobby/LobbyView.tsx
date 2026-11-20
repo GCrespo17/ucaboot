@@ -1,16 +1,27 @@
 import { Navigate, useParams } from "react-router-dom";
+import { HostGameView } from "../game/HostGameView";
 import { Button } from "../../ui/Button";
 import { FormMessage } from "../../ui/FormMessage";
 import { LinkButton } from "../../ui/LinkButton";
 import styles from "./Lobby.module.css";
 import { useLobbyViewModel } from "./useLobbyViewModel";
 
-// Pantalla para proyectar mientras la clase entra a la sala
+// Pantalla de la sala para proyectar: el lobby mientras la clase entra y, al comenzar, la partida
 export function LobbyView() {
   const { pin = "" } = useParams();
   const vm = useLobbyViewModel(pin);
 
   if (vm.lostState) return <Navigate to={vm.libraryPath} replace state={vm.lostState} />;
+
+  // Después de comenzar, la misma ruta muestra la partida (una recarga vuelve a la fase en curso)
+  if (vm.room && vm.phase !== "lobby") {
+    return (
+      <>
+        {vm.reconnecting && <FormMessage tone="info">Se perdió la conexión. Reconectando…</FormMessage>}
+        <HostGameView room={vm.room} clockOffset={vm.clockOffset} />
+      </>
+    );
+  }
 
   return (
     <section className={styles.lobby} aria-labelledby="lobby-titulo">
