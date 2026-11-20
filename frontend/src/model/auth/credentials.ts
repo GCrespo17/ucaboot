@@ -3,22 +3,25 @@ import { z } from "zod";
 // Reglas de correo y contraseña de docs/specs/00-indice.md
 export const PASSWORD_POLICY = "Mínimo 8 caracteres, con al menos una letra y un número.";
 
-const email = z.string().trim().toLowerCase().min(1, "Escribe tu correo.").pipe(z.email("Escribe un correo válido."));
+export const email = z.string().trim().toLowerCase().min(1, "Escribe tu correo.").pipe(z.email("Escribe un correo válido."));
 
 export const loginSchema = z.object({
   email,
   password: z.string().min(1, "Escribe tu contraseña."),
 });
 
+// Contraseña nueva: la usan el registro (HU-1.1) y el cambio de contraseña (HU-1.6)
+export const newPassword = z
+  .string()
+  .min(1, "Escribe una contraseña.")
+  .min(8, PASSWORD_POLICY)
+  .regex(/\p{L}/u, PASSWORD_POLICY)
+  .regex(/\d/, PASSWORD_POLICY);
+
 export const registerSchema = z
   .object({
     email,
-    password: z
-      .string()
-      .min(1, "Escribe una contraseña.")
-      .min(8, PASSWORD_POLICY)
-      .regex(/\p{L}/u, PASSWORD_POLICY)
-      .regex(/\d/, PASSWORD_POLICY),
+    password: newPassword,
     confirm: z.string().min(1, "Repite la contraseña."),
   })
   .superRefine(({ password, confirm }, ctx) => {

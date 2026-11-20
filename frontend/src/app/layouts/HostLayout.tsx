@@ -21,7 +21,17 @@ export function HostLayout() {
           >
             Mis cuestionarios
           </NavLink>
-          {menu.email && <span className={styles.account}>{menu.email}</span>}
+          {menu.displayName && (
+            <NavLink
+              to="/anfitrion/cuenta"
+              title={`Mi cuenta (${menu.email})`}
+              className={({ isActive }) =>
+                isActive ? `${styles.navLink} ${styles.navLinkActive} ${styles.account}` : `${styles.navLink} ${styles.account}`
+              }
+            >
+              {menu.displayName}
+            </NavLink>
+          )}
           <Button variant="secondary" onClick={menu.logout} disabled={menu.leaving}>
             {menu.leaving ? "Saliendo…" : "Salir"}
           </Button>

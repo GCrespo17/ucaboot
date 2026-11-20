@@ -40,19 +40,18 @@
   color: var(--color-brand);
 }
 
+/* Nombre visible: enlace a Mi cuenta */
 .account {
   max-width: 16rem;
   overflow: hidden;
-  color: var(--color-text-muted);
-  font-size: 0.875rem;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-/* En pantallas angostas el correo no cabe junto a los enlaces */
+/* En pantallas angostas se acorta para que quepa junto a los demás enlaces */
 @media (max-width: 40rem) {
   .account {
-    display: none;
+    max-width: 8rem;
   }
 }
 
