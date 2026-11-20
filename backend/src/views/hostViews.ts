@@ -1,26 +1,43 @@
 import { answerStyle } from "../domain/game/answerStyle.js";
 import type { Room } from "../domain/game/model/room.js";
 import { answeredCount, currentQuestion, currentRound } from "../domain/game/roomSelectors.js";
-import type { HostQuestionView, HostRoomSnapshot } from "./events.js";
+import type { AnswerCountUpdate, HostQuestionView, HostRoomSnapshot } from "./events.js";
 import { toViewPhase } from "./viewPhase.js";
 
-export function toHostQuestionView(room: Room, now: number): HostQuestionView | null {
+function activeRound(room: Room) {
   if (room.phase !== "question") return null;
   const question = currentQuestion(room);
   const round = currentRound(room);
   if (!question || !round) return null;
+  return { question, round };
+}
+
+export function toAnswerCountUpdate(room: Room): AnswerCountUpdate | null {
+  const active = activeRound(room);
+  if (!active) return null;
 
   return {
-    questionIndex: round.questionIndex,
+    questionIndex: active.round.questionIndex,
+    answeredCount: answeredCount(room),
+    rosterSize: room.rosterIds?.length ?? 0,
+  };
+}
+
+export function toHostQuestionView(room: Room, now: number): HostQuestionView | null {
+  const active = activeRound(room);
+  if (!active) return null;
+
+  return {
+    questionIndex: active.round.questionIndex,
     totalQuestions: room.quiz.questions.length,
-    text: question.text,
-    imageUrl: question.imageUrl,
-    options: question.options.map((option, index) => {
+    text: active.question.text,
+    imageUrl: active.question.imageUrl,
+    options: active.question.options.map((option, index) => {
       const { color, shape } = answerStyle(index);
       return { id: option.id, text: option.text, color, shape };
     }),
-    timeLimit: question.timeLimitSeconds,
-    closesAt: round.closesAt,
+    timeLimit: active.question.timeLimitSeconds,
+    closesAt: active.round.closesAt,
     serverNow: now,
     answeredCount: answeredCount(room),
     rosterSize: room.rosterIds?.length ?? 0,

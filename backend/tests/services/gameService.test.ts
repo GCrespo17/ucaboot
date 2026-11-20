@@ -163,3 +163,150 @@ describe("GameService.startGame", () => {
     expect(updated?.rounds[0]?.closedAt).toBe(T0 + 10_000);
   });
 });
+
+describe("GameService.submitAnswer", () => {
+  it("debe aceptar una respuesta válida, guardarla y notificar question:answerCount", async () => {
+    const { rooms, clock, notifier, gameService } = setup();
+    await rooms.insertIfAbsent(makeStartedRoom(2));
+    clock.set(T0 + 3_000);
+
+    const ack = await gameService.submitAnswer({
+      pin: "123456",
+      playerId: "p1",
+      questionIndex: 0,
+      optionId: "a",
+    });
+
+    expect(ack).toEqual({ questionIndex: 0, optionId: "a" });
+    const saved = await rooms.get("123456");
+    expect(saved?.rounds[0]?.answers.p1).toEqual({
+      optionId: "a",
+      acceptedAt: T0 + 3_000,
+      remainingMs: 7_000,
+    });
+    expect(notifier.notifications).toEqual([
+      { method: "answerCountChanged", pin: "123456", phase: "question" },
+    ]);
+  });
+
+  it("debe rechazar una segunda respuesta del mismo participante con ALREADY_ANSWERED (HU-6.2 FA1)", async () => {
+    const { rooms, clock, notifier, gameService } = setup();
+    await rooms.insertIfAbsent(makeStartedRoom(2));
+    clock.set(T0 + 2_000);
+
+    await gameService.submitAnswer({ pin: "123456", playerId: "p1", questionIndex: 0, optionId: "a" });
+    notifier.notifications.length = 0;
+
+    clock.set(T0 + 3_000);
+    expect(
+      await errorCodeOf(
+        gameService.submitAnswer({ pin: "123456", playerId: "p1", questionIndex: 0, optionId: "b" }),
+      ),
+    ).toBe("ALREADY_ANSWERED");
+
+    const saved = await rooms.get("123456");
+    expect(saved?.rounds[0]?.answers.p1?.optionId).toBe("a");
+    expect(notifier.notifications).toHaveLength(0);
+  });
+
+  it("debe rechazar con TOO_LATE si el tiempo expiró, la ronda cerró o el índice no coincide (HU-6.2 FA2)", async () => {
+    const { rooms, clock, notifier, gameService } = setup();
+    await rooms.insertIfAbsent(makeStartedRoom(2));
+
+    expect(
+      await errorCodeOf(
+        gameService.submitAnswer({ pin: "123456", playerId: "p1", questionIndex: 1, optionId: "a" }),
+      ),
+    ).toBe("TOO_LATE");
+
+    clock.set(T0 + 10_000);
+    expect(
+      await errorCodeOf(
+        gameService.submitAnswer({ pin: "123456", playerId: "p1", questionIndex: 0, optionId: "a" }),
+      ),
+    ).toBe("TOO_LATE");
+    expect(notifier.notifications).toHaveLength(0);
+  });
+
+  it("debe rechazar una opción inexistente con INVALID_OPTION y permitir responder después (HU-6.2 FA3)", async () => {
+    const { rooms, clock, notifier, gameService } = setup();
+    await rooms.insertIfAbsent(makeStartedRoom(2));
+    clock.set(T0 + 2_000);
+
+    expect(
+      await errorCodeOf(
+        gameService.submitAnswer({ pin: "123456", playerId: "p1", questionIndex: 0, optionId: "nope" }),
+      ),
+    ).toBe("INVALID_OPTION");
+    expect(notifier.notifications).toHaveLength(0);
+
+    const ack = await gameService.submitAnswer({
+      pin: "123456",
+      playerId: "p1",
+      questionIndex: 0,
+      optionId: "a",
+    });
+    expect(ack).toEqual({ questionIndex: 0, optionId: "a" });
+  });
+
+  it("debe rechazar con NOT_IN_ROSTER a un participante fuera de la lista fijada (HU-6.2 FA4)", async () => {
+    const { rooms, notifier, gameService } = setup();
+    await rooms.insertIfAbsent(makeStartedRoom(2));
+
+    expect(
+      await errorCodeOf(
+        gameService.submitAnswer({ pin: "123456", playerId: "outsider", questionIndex: 0, optionId: "a" }),
+      ),
+    ).toBe("NOT_IN_ROSTER");
+    expect(notifier.notifications).toHaveLength(0);
+  });
+
+  it("debe aceptar solo uno de dos envíos simultáneos del mismo participante (HU-6.2 FA6)", async () => {
+    const { rooms, notifier, gameService } = setup();
+    await rooms.insertIfAbsent(makeStartedRoom(2));
+
+    const results = await Promise.allSettled([
+      gameService.submitAnswer({ pin: "123456", playerId: "p1", questionIndex: 0, optionId: "a" }),
+      gameService.submitAnswer({ pin: "123456", playerId: "p1", questionIndex: 0, optionId: "b" }),
+    ]);
+
+    const fulfilled = results.filter((item) => item.status === "fulfilled");
+    const rejected = results.filter((item) => item.status === "rejected");
+    expect(fulfilled).toHaveLength(1);
+    expect(rejected).toHaveLength(1);
+    expect((rejected[0]?.reason as AppError).code).toBe("ALREADY_ANSWERED");
+    expect(notifier.notifications).toHaveLength(1);
+  });
+
+  it("debe conservar el conteo de respuestas aunque un participante ya respondido deje de estar conectado (HU-6.1 / HU-10.3)", async () => {
+    const { rooms, gameService } = setup();
+    await rooms.insertIfAbsent(makeStartedRoom(2));
+
+    await gameService.submitAnswer({ pin: "123456", playerId: "p1", questionIndex: 0, optionId: "a" });
+    await gameService.submitAnswer({ pin: "123456", playerId: "p2", questionIndex: 0, optionId: "b" });
+
+    const saved = await rooms.get("123456");
+    expect(Object.keys(saved?.rounds[0]?.answers ?? {})).toEqual(["p1", "p2"]);
+    expect(saved?.rosterIds).toEqual(["p1", "p2"]);
+  });
+
+  it("no debe notificar si falla al guardar la respuesta", async () => {
+    const base = new InMemoryRoomStateStore();
+    await base.insertIfAbsent(makeStartedRoom(2));
+    const failingStore: RoomStateStore = {
+      get: (pin) => base.get(pin),
+      insertIfAbsent: (room) => base.insertIfAbsent(room),
+      save: async () => {
+        throw new Error("storage unavailable");
+      },
+      findOpenByHost: (hostId) => base.findOpenByHost(hostId),
+      findPlayerByToken: (token) => base.findPlayerByToken(token),
+    };
+    const { notifier, gameService } = setup(failingStore);
+
+    await expect(
+      gameService.submitAnswer({ pin: "123456", playerId: "p1", questionIndex: 0, optionId: "a" }),
+    ).rejects.toThrow("storage unavailable");
+    expect(notifier.notifications).toHaveLength(0);
+  });
+});

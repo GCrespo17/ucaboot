@@ -10,3 +10,8 @@ export const playerJoinPayload = z.object({
   nickname: z.string().max(100),
   token: z.string().max(200).optional(),
 });
+
+export const playerAnswerPayload = z.object({
+  questionIndex: z.number().int().min(0),
+  optionId: z.string().min(1).max(100),
+});

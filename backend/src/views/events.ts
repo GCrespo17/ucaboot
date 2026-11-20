@@ -93,15 +93,28 @@ export interface LobbyUpdate {
   maxPlayers: number;
 }
 
+export interface AnswerCountUpdate {
+  questionIndex: number;
+  answeredCount: number;
+  rosterSize: number;
+}
+
+export interface PlayerAnswerAck {
+  questionIndex: number;
+  optionId: string;
+}
+
 export interface ClientToServerEvents {
   "host:watch": (payload: unknown, ack: (response: Ack<HostRoomSnapshot>) => void) => void;
   "host:start": (payload: unknown, ack: (response: Ack<HostRoomSnapshot>) => void) => void;
   "player:join": (payload: unknown, ack: (response: Ack<PlayerJoinResult>) => void) => void;
+  "player:answer": (payload: unknown, ack: (response: Ack<PlayerAnswerAck>) => void) => void;
 }
 
 export interface ServerToClientEvents {
   "lobby:updated": (update: LobbyUpdate) => void;
   "question:opened": (question: HostQuestionView | PlayerQuestionView) => void;
+  "question:answerCount": (update: AnswerCountUpdate) => void;
 }
 
 export interface SocketData {

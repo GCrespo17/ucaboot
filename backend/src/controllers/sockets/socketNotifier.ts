@@ -1,6 +1,6 @@
 import type { Room } from "../../domain/game/model/room.js";
 import type { GameNotifier } from "../../domain/ports/GameNotifier.js";
-import { toHostQuestionView } from "../../views/hostViews.js";
+import { toAnswerCountUpdate, toHostQuestionView } from "../../views/hostViews.js";
 import { toPlayerQuestionView } from "../../views/playerViews.js";
 import { hostRoomName, playersRoomName } from "./roomNames.js";
 import type { GameServer } from "./socket.js";
@@ -23,5 +23,11 @@ export class SocketNotifier implements GameNotifier {
 
     const playerView = toPlayerQuestionView(room, now);
     if (playerView) this.io.to(playersRoomName(room.pin)).emit("question:opened", playerView);
+  }
+
+  // Only the room's host sees the live answer count (HU-6.1)
+  answerCountChanged(room: Room): void {
+    const update = toAnswerCountUpdate(room);
+    if (update) this.io.to(hostRoomName(room.pin)).emit("question:answerCount", update);
   }
 }

@@ -1,3 +1,4 @@
+import { submitAnswer } from "../domain/game/answering.js";
 import { closeQuestion, startGame } from "../domain/game/gameFlow.js";
 import type { Room } from "../domain/game/model/room.js";
 import { currentRound } from "../domain/game/roomSelectors.js";
@@ -41,6 +42,30 @@ export class GameService {
       this.scheduleQuestionClose(result.room);
       this.deps.notifier.questionOpened(result.room, now);
       return result.room;
+    });
+  }
+
+  submitAnswer(input: {
+    pin: string;
+    playerId: string;
+    questionIndex: number;
+    optionId: string;
+  }): Promise<{ questionIndex: number; optionId: string }> {
+    return this.deps.lock.run(`pin:${input.pin}`, async () => {
+      const room = await this.deps.rooms.get(input.pin);
+      if (!room || room.phase === "closed") throw new AppError("PIN_NOT_FOUND");
+
+      const result = submitAnswer(room, {
+        playerId: input.playerId,
+        questionIndex: input.questionIndex,
+        optionId: input.optionId,
+        now: this.deps.clock.now(),
+      });
+      if (!result.ok) throw new AppError(result.code);
+
+      await this.deps.rooms.save(result.room);
+      this.deps.notifier.answerCountChanged(result.room);
+      return { questionIndex: input.questionIndex, optionId: input.optionId };
     });
   }
 

@@ -4,4 +4,5 @@ import type { Room } from "../game/model/room.js";
 export interface GameNotifier {
   lobbyChanged(room: Room): void;
   questionOpened(room: Room, now: number): void;
+  answerCountChanged(room: Room): void;
 }
