@@ -71,6 +71,7 @@ export class GameService {
       if (result.allAnswered) this.deps.scheduler.cancel(roundTimerKey(input.pin));
       // Emit with result.room (still in "question" phase) because toAnswerCountUpdate returns null in "reveal"
       this.deps.notifier.answerCountChanged(result.room);
+      if (result.allAnswered) this.deps.notifier.roundClosed(roomToSave);
       return { questionIndex: input.questionIndex, optionId: input.optionId };
     });
   }
@@ -100,6 +101,7 @@ export class GameService {
       const { room: closedRoom, closed } = closeQuestion(room, questionIndex, now);
       if (!closed) return;
       await this.deps.rooms.save(closedRoom);
+      this.deps.notifier.roundClosed(closedRoom);
     });
   }
 }

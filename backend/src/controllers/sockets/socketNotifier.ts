@@ -1,8 +1,8 @@
 import type { Room } from "../../domain/game/model/room.js";
 import type { GameNotifier } from "../../domain/ports/GameNotifier.js";
-import { toAnswerCountUpdate, toHostQuestionView } from "../../views/hostViews.js";
-import { toPlayerQuestionView } from "../../views/playerViews.js";
-import { hostRoomName, playersRoomName } from "./roomNames.js";
+import { toAnswerCountUpdate, toHostQuestionView, toRevealView } from "../../views/hostViews.js";
+import { toPlayerQuestionView, toPlayerRoundResults } from "../../views/playerViews.js";
+import { hostRoomName, playerRoomName, playersRoomName } from "./roomNames.js";
 import type { GameServer } from "./socket.js";
 
 export class SocketNotifier implements GameNotifier {
@@ -29,5 +29,15 @@ export class SocketNotifier implements GameNotifier {
   answerCountChanged(room: Room): void {
     const update = toAnswerCountUpdate(room);
     if (update) this.io.to(hostRoomName(room.pin)).emit("question:answerCount", update);
+  }
+
+  // Reveal goes to the host; each roster player receives only their own result (HU-7.1, HU-7.2)
+  roundClosed(room: Room): void {
+    const reveal = toRevealView(room);
+    if (reveal) this.io.to(hostRoomName(room.pin)).emit("question:revealed", reveal);
+
+    for (const { playerId, result } of toPlayerRoundResults(room)) {
+      this.io.to(playerRoomName(playerId)).emit("round:result", result);
+    }
   }
 }

@@ -97,6 +97,10 @@ export class RecordingNotifier implements GameNotifier {
   answerCountChanged(room: Room): void {
     this.notifications.push({ method: "answerCountChanged", pin: room.pin, phase: room.phase });
   }
+
+  roundClosed(room: Room): void {
+    this.notifications.push({ method: "roundClosed", pin: room.pin, phase: room.phase });
+  }
 }
 
 export class SilentLogger implements Logger {

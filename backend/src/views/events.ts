@@ -53,6 +53,37 @@ export interface PlayerQuestionView {
   answered: boolean;
 }
 
+export interface RevealOption {
+  id: string;
+  text: string;
+  color: AnswerColor;
+  shape: AnswerShape;
+  isCorrect: boolean;
+  count: number;
+}
+
+export interface RevealView {
+  questionIndex: number;
+  totalQuestions: number;
+  text: string;
+  imageUrl: string | null;
+  options: RevealOption[];
+  noAnswerCount: number;
+  rosterSize: number;
+  isLastQuestion: boolean;
+}
+
+export type RoundOutcome = "correct" | "incorrect" | "noAnswer";
+
+export interface PlayerRoundResult {
+  questionIndex: number;
+  outcome: RoundOutcome;
+  isCorrect: boolean;
+  scoreGained: number;
+  totalScore: number;
+  rank: number;
+}
+
 export interface HostRoomSnapshot {
   pin: string;
   phase: Phase;
@@ -61,8 +92,8 @@ export interface HostRoomSnapshot {
   // Order of accepted entry
   players: PlayerSummary[];
   question: HostQuestionView | null;
-  // Filled in by the results steps; null until then
-  reveal: null;
+  reveal: RevealView | null;
+  // Filled in by the final step; null until then
   final: null;
   serverNow: number;
 }
@@ -73,8 +104,8 @@ export interface PlayerRoomSnapshot {
   nickname: string;
   phase: Phase;
   question: PlayerQuestionView | null;
-  // Filled in by the results steps; null until then
-  result: null;
+  result: PlayerRoundResult | null;
+  // Filled in by the final step; null until then
   final: null;
   serverNow: number;
 }
@@ -115,6 +146,8 @@ export interface ServerToClientEvents {
   "lobby:updated": (update: LobbyUpdate) => void;
   "question:opened": (question: HostQuestionView | PlayerQuestionView) => void;
   "question:answerCount": (update: AnswerCountUpdate) => void;
+  "question:revealed": (reveal: RevealView) => void;
+  "round:result": (result: PlayerRoundResult) => void;
 }
 
 export interface SocketData {

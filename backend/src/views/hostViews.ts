@@ -1,7 +1,8 @@
 import { answerStyle } from "../domain/game/answerStyle.js";
 import type { Room } from "../domain/game/model/room.js";
 import { answeredCount, currentQuestion, currentRound } from "../domain/game/roomSelectors.js";
-import type { AnswerCountUpdate, HostQuestionView, HostRoomSnapshot } from "./events.js";
+import { optionCounts } from "../domain/game/roundSummary.js";
+import type { AnswerCountUpdate, HostQuestionView, HostRoomSnapshot, RevealView } from "./events.js";
 import { toViewPhase } from "./viewPhase.js";
 
 function activeRound(room: Room) {
@@ -44,6 +45,37 @@ export function toHostQuestionView(room: Room, now: number): HostQuestionView | 
   };
 }
 
+export function toRevealView(room: Room): RevealView | null {
+  if (room.phase !== "reveal") return null;
+  const question = currentQuestion(room);
+  const round = currentRound(room);
+  if (!question || !round) return null;
+
+  const rosterSize = room.rosterIds?.length ?? 0;
+  const { counts, noAnswer } = optionCounts(round, question, rosterSize);
+
+  return {
+    questionIndex: round.questionIndex,
+    totalQuestions: room.quiz.questions.length,
+    text: question.text,
+    imageUrl: question.imageUrl,
+    options: question.options.map((option, index) => {
+      const { color, shape } = answerStyle(index);
+      return {
+        id: option.id,
+        text: option.text,
+        color,
+        shape,
+        isCorrect: option.isCorrect,
+        count: counts[option.id] ?? 0,
+      };
+    }),
+    noAnswerCount: noAnswer,
+    rosterSize,
+    isLastQuestion: round.questionIndex === room.quiz.questions.length - 1,
+  };
+}
+
 export function toHostRoomSnapshot(room: Room, now: number): HostRoomSnapshot {
   return {
     pin: room.pin,
@@ -56,7 +88,7 @@ export function toHostRoomSnapshot(room: Room, now: number): HostRoomSnapshot {
     maxPlayers: room.maxPlayers,
     players: room.players.map((player) => ({ playerId: player.id, nickname: player.nickname })),
     question: toHostQuestionView(room, now),
-    reveal: null,
+    reveal: toRevealView(room),
     final: null,
     serverNow: now,
   };

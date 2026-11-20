@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { submitAnswer } from "../../src/domain/game/answering.js";
+import { closeQuestion } from "../../src/domain/game/gameFlow.js";
 import type { GameServer } from "../../src/controllers/sockets/socket.js";
 import { SocketNotifier } from "../../src/controllers/sockets/socketNotifier.js";
 import { T0, makeStartedRoom } from "../domain/fixtures.js";
@@ -78,6 +79,67 @@ describe("SocketNotifier", () => {
           questionIndex: 0,
           answeredCount: 1,
           rosterSize: 2,
+        },
+      },
+    ]);
+  });
+
+  it("envía question:revealed solo al anfitrión y round:result personalizado a cada jugador del roster (HU-7.1 / HU-7.2)", () => {
+    const { io, emitted } = createFakeServer();
+    const notifier = new SocketNotifier(io);
+    const started = makeStartedRoom(2);
+    const answered = submitAnswer(started, {
+      playerId: "p1",
+      questionIndex: 0,
+      optionId: "a",
+      now: T0 + 2_000,
+    });
+    if (!answered.ok) throw new Error("expected ok");
+    const { room: revealed } = closeQuestion(answered.room, 0, T0 + 10_000);
+
+    notifier.roundClosed(revealed);
+
+    expect(emitted).toEqual([
+      {
+        room: "pin:123456:host",
+        event: "question:revealed",
+        payload: {
+          questionIndex: 0,
+          totalQuestions: 2,
+          text: "Capital of France?",
+          imageUrl: null,
+          options: [
+            { id: "a", text: "Paris", color: "red", shape: "triangle", isCorrect: true, count: 1 },
+            { id: "b", text: "Rome", color: "blue", shape: "diamond", isCorrect: false, count: 0 },
+            { id: "c", text: "Madrid", color: "yellow", shape: "circle", isCorrect: false, count: 0 },
+          ],
+          noAnswerCount: 1,
+          rosterSize: 2,
+          isLastQuestion: false,
+        },
+      },
+      {
+        room: "player:p1",
+        event: "round:result",
+        payload: {
+          questionIndex: 0,
+          outcome: "correct",
+          isCorrect: true,
+          scoreGained: 800,
+          totalScore: 800,
+          rank: 1,
+        },
+      },
+      {
+        room: "player:p2",
+        event: "round:result",
+        payload: {
+          questionIndex: 0,
+          outcome: "noAnswer",
+          isCorrect: false,
+          scoreGained: 0,
+          totalScore: 0,
+          rank: 2,
         },
       },
     ]);

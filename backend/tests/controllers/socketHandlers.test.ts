@@ -11,7 +11,7 @@ import { InMemoryRoomStateStore } from "../../src/infra/state/inMemoryRoomStateS
 import { GameService } from "../../src/services/gameService.js";
 import { PlayerService } from "../../src/services/playerService.js";
 import { RoomService } from "../../src/services/roomService.js";
-import type { Ack, HostRoomSnapshot, PlayerAnswerAck, SocketData } from "../../src/views/events.js";
+import type { Ack, HostRoomSnapshot, PlayerAnswerAck, PlayerJoinResult, SocketData } from "../../src/views/events.js";
 import { T0, makeLobby, makeStartedRoom } from "../domain/fixtures.js";
 import { FakeClock, ManualScheduler, RecordingNotifier, SequenceIdGenerator, SilentLogger } from "../services/fakes.js";
 
@@ -164,5 +164,49 @@ describe("socket handlers (HU-6.1 FA4 & HU-6.2)", () => {
     if (!watchAck.ok) throw new Error("expected ok");
     expect(watchAck.data.phase).toBe("reveal");
     expect(watchAck.data.question).toBeNull();
+    expect(watchAck.data.reveal).toMatchObject({
+      questionIndex: 0,
+      noAnswerCount: 1,
+      rosterSize: 1,
+    });
+  });
+
+  it("permite al participante reconectarse durante la revelación y ver su resultado (HU-7.2 FA2/FA3)", async () => {
+    const { container, clock, rooms } = buildTestContainer();
+    await rooms.insertIfAbsent(makeLobby(0));
+
+    const playerSocket = createFakeSocket();
+    registerPlayerHandlers(playerSocket.socket, container);
+    const joinAck = await playerSocket.invoke<PlayerJoinResult>("player:join", {
+      pin: "123456",
+      nickname: "Ana",
+    });
+    if (!joinAck.ok) throw new Error("expected join ok");
+
+    await container.gameService.startGame("host1", "123456");
+    clock.set(T0 + 2_000);
+    await playerSocket.invoke<PlayerAnswerAck>("player:answer", { questionIndex: 0, optionId: "a" });
+
+    // Reconnect on a fresh socket with the player token while the room is in reveal
+    const reconnectedSocket = createFakeSocket();
+    registerPlayerHandlers(reconnectedSocket.socket, container);
+    const resumeAck = await reconnectedSocket.invoke<PlayerJoinResult>("player:join", {
+      pin: "123456",
+      nickname: "Ana",
+      token: joinAck.data.token,
+    });
+
+    expect(resumeAck.ok).toBe(true);
+    if (!resumeAck.ok) throw new Error("expected resume ok");
+    expect(resumeAck.data.room.phase).toBe("reveal");
+    expect(resumeAck.data.room.question).toBeNull();
+    expect(resumeAck.data.room.result).toEqual({
+      questionIndex: 0,
+      outcome: "correct",
+      isCorrect: true,
+      scoreGained: 800,
+      totalScore: 800,
+      rank: 1,
+    });
   });
 });
