@@ -7,7 +7,7 @@ const LIBRARY = "/anfitrion/cuestionarios";
 
 // HU-4.2 ver el lobby con el PIN, HU-4.3 el QR de unión y HU-4.4 los apodos que entran
 export function useLobbyViewModel(pin: string) {
-  const state = useHostRoom(pin);
+  const { state } = useHostRoom(pin);
   const room = state.status === "lista" ? state.room : null;
   const qr = useJoinQr(joinUrl(window.location.origin, room?.pin ?? pin));
 
