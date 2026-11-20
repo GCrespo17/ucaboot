@@ -23,6 +23,7 @@ Una View importa su ViewModel y componentes de `ui/`. Un ViewModel importa de `m
 | `/jugar` | Unirse a una partida con PIN y apodo | Pública |
 | `/anfitrion/cuestionarios` | Biblioteca de cuestionarios | Anfitrión |
 | `/anfitrion/cuestionarios/:quizId` | Editor de un cuestionario | Anfitrión |
+| `/anfitrion/cuestionarios/:quizId/vista-previa` | Vista previa del cuestionario | Anfitrión |
 | `/anfitrion/sala/:pin` | Lobby y partida proyectada | Anfitrión |
 
 ## Autenticación del anfitrión
@@ -71,6 +72,17 @@ En el detalle del cuestionario se agregan, editan y eliminan preguntas (HU-3.1 a
 - Al editar, si nada cambió, el diálogo se cierra sin llamar al API.
 
 Las opciones se envían en el orden del formulario, sin las filas vacías, y el servidor les asigna la posición que fija el color. Si se deja vacía la fila 3 y se llena la 4, esa opción queda en tercer lugar (amarillo).
+
+## Vista previa
+
+"Vista previa", en el detalle, muestra el cuestionario pregunta por pregunta en orden de juego (HU-2.8). Solo lee el detalle guardado: no crea sala ni PIN, no da puntos y al cerrar no guarda nada.
+
+- **Vista del anfitrión:** texto, imagen, temporizador y opciones con su color y forma, con las correctas marcadas.
+- **Vista del participante:** solo los botones de color y forma, deshabilitados, sin textos ni correctas.
+- El temporizador muestra la duración configurada y no corre. Se avanza con los botones o con las flechas; Escape cierra.
+- Sin preguntas completas el botón queda deshabilitado. Si una imagen no carga, se muestra un aviso y la pregunta sigue.
+
+Las reglas están en `model/quizzes/preview.ts`. La pregunta proyectada y la botonera (`ui/game/`) son solo presentación, para reutilizarlas en la partida (HU-6.1).
 
 ## Lobby del anfitrión
 

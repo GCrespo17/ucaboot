@@ -1,8 +1,10 @@
 import { Link, Navigate, useParams } from "react-router-dom";
 import { Button } from "../../ui/Button";
 import { ConfirmDialog } from "../../ui/ConfirmDialog";
+import answerStyles from "../../ui/Answer.module.css";
+import { SHAPES } from "../../ui/answers";
 import { FormMessage } from "../../ui/FormMessage";
-import { SHAPES } from "./answerShapes";
+import { LinkButton } from "../../ui/LinkButton";
 import styles from "./Library.module.css";
 import { QuestionFormDialog } from "./QuestionFormDialog";
 import { QuizFormDialog } from "./QuizFormDialog";
@@ -44,6 +46,15 @@ export function QuizDetailView() {
               <Button onClick={vm.startQuiz} disabled={vm.startPending}>
                 {vm.startGameLabel}
               </Button>
+              {vm.canPreview ? (
+                <LinkButton to={vm.previewPath} variant="secondary">
+                  Vista previa
+                </LinkButton>
+              ) : (
+                <Button variant="secondary" disabled title={vm.previewHint}>
+                  Vista previa
+                </Button>
+              )}
               <Button variant="secondary" onClick={vm.openEdit}>
                 Editar datos
               </Button>
@@ -98,7 +109,7 @@ export function QuizDetailView() {
                     <p className={styles.muted}>{question.meta}</p>
                     <ul className={styles.options}>
                       {question.options.map((option) => (
-                        <li key={option.id} className={`${styles.option} ${styles[`answer${option.answer}`]}`}>
+                        <li key={option.id} className={`${styles.option} ${answerStyles[`answer${option.answer}`]}`}>
                           <span aria-hidden="true">{SHAPES[option.answer]}</span>
                           <span className={styles.optionText}>{option.text}</span>
                           {option.isCorrect && (
