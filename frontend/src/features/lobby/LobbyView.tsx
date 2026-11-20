@@ -65,18 +65,20 @@ export function LobbyView() {
               <LinkButton to={vm.libraryPath} variant="secondary">
                 Mis cuestionarios
               </LinkButton>
-              <Button disabled={!vm.canStart} title={vm.startHint}>
-                Comenzar
+              <Button disabled={!vm.canStart} title={vm.startHint} onClick={vm.startGame}>
+                {vm.startLabel}
               </Button>
             </div>
           </header>
+
+          {vm.startError && <FormMessage>{vm.startError}</FormMessage>}
 
           <section aria-labelledby="participantes-titulo" className={styles.players}>
             <h2 id="participantes-titulo" className={styles.playersTitle}>
               Participantes <span className={styles.count}>{vm.countLabel}</span>
             </h2>
             {vm.players.length === 0 ? (
-              <p className={styles.waiting}>Esperando participantes…</p>
+              <p className={styles.waiting}>Esperando participantes… Podrás comenzar cuando entre el primero.</p>
             ) : (
               <ul className={styles.playerList} aria-live="polite">
                 {vm.players.map((player) => (
