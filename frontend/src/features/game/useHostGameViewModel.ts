@@ -8,7 +8,7 @@ import type { HostRoomSnapshot } from "../../model/types/room";
 export function useHostGameViewModel(room: HostRoomSnapshot, clockOffset: number) {
   const question = room.question;
   const reveal = room.reveal;
-  const seconds = useCountdown(question?.closesAt ?? null, clockOffset);
+  const seconds = useCountdown(question?.closesAt ?? null, clockOffset, question?.timeLimit ?? 0);
   const [failedImages, setFailedImages] = useState<ReadonlySet<string>>(new Set());
 
   const current = question ?? reveal;

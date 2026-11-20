@@ -3,7 +3,9 @@ import { secondsLeft } from "./game";
 
 // Cuenta regresiva hasta closesAt (hora del servidor). Se recalcula con el reloj local más la
 // diferencia con el servidor, así una pestaña dormida o recargada muestra el tiempo real (HU-6.1 FA2).
-export function useCountdown(closesAt: number | null, offset: number) {
+// limitSeconds es el tiempo de la pregunta: al abrirse una nueva, el primer cálculo usa la hora del
+// último tic (puede ser de hace rato) y sin ese tope mostraría de más hasta el siguiente tic.
+export function useCountdown(closesAt: number | null, offset: number, limitSeconds: number) {
   const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
@@ -12,5 +14,5 @@ export function useCountdown(closesAt: number | null, offset: number) {
     return () => window.clearInterval(id);
   }, [closesAt]);
 
-  return closesAt === null ? 0 : secondsLeft(closesAt, offset, now);
+  return closesAt === null ? 0 : Math.min(secondsLeft(closesAt, offset, now), limitSeconds);
 }

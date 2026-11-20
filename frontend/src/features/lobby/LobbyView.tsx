@@ -13,6 +13,15 @@ export function LobbyView() {
 
   if (vm.lostState) return <Navigate to={vm.libraryPath} replace state={vm.lostState} />;
 
+  // Hasta conectar no se sabe la fase: si la partida ya comenzó, no se debe mostrar el lobby con el PIN
+  if (vm.status === "conectando") {
+    return (
+      <p className={styles.waiting} aria-busy="true">
+        Conectando con la sala…
+      </p>
+    );
+  }
+
   // Después de comenzar, la misma ruta muestra la partida (una recarga vuelve a la fase en curso)
   if (vm.room && vm.phase !== "lobby") {
     return (
@@ -61,47 +70,39 @@ export function LobbyView() {
         )}
       </div>
 
-      {vm.status === "conectando" ? (
-        <p className={styles.waiting} aria-busy="true">
-          Conectando con la sala…
-        </p>
-      ) : (
-        <>
-          <header className={styles.header}>
-            <div>
-              <h1 className={styles.title}>{vm.quizTitle}</h1>
-              <p className={styles.muted}>{vm.questionsLabel}</p>
-            </div>
-            <div className={styles.actions}>
-              <LinkButton to={vm.libraryPath} variant="secondary">
-                Mis cuestionarios
-              </LinkButton>
-              <Button disabled={!vm.canStart} title={vm.startHint} onClick={vm.startGame}>
-                {vm.startLabel}
-              </Button>
-            </div>
-          </header>
+      <header className={styles.header}>
+        <div>
+          <h1 className={styles.title}>{vm.quizTitle}</h1>
+          <p className={styles.muted}>{vm.questionsLabel}</p>
+        </div>
+        <div className={styles.actions}>
+          <LinkButton to={vm.libraryPath} variant="secondary">
+            Mis cuestionarios
+          </LinkButton>
+          <Button disabled={!vm.canStart} title={vm.startHint} onClick={vm.startGame}>
+            {vm.startLabel}
+          </Button>
+        </div>
+      </header>
 
-          {vm.startError && <FormMessage>{vm.startError}</FormMessage>}
+      {vm.startError && <FormMessage>{vm.startError}</FormMessage>}
 
-          <section aria-labelledby="participantes-titulo" className={styles.players}>
-            <h2 id="participantes-titulo" className={styles.playersTitle}>
-              Participantes <span className={styles.count}>{vm.countLabel}</span>
-            </h2>
-            {vm.players.length === 0 ? (
-              <p className={styles.waiting}>Esperando participantes… Podrás comenzar cuando entre el primero.</p>
-            ) : (
-              <ul className={styles.playerList} aria-live="polite">
-                {vm.players.map((player) => (
-                  <li key={player.id} className={styles.player}>
-                    {player.nickname}
-                  </li>
-                ))}
-              </ul>
-            )}
-          </section>
-        </>
-      )}
+      <section aria-labelledby="participantes-titulo" className={styles.players}>
+        <h2 id="participantes-titulo" className={styles.playersTitle}>
+          Participantes <span className={styles.count}>{vm.countLabel}</span>
+        </h2>
+        {vm.players.length === 0 ? (
+          <p className={styles.waiting}>Esperando participantes… Podrás comenzar cuando entre el primero.</p>
+        ) : (
+          <ul className={styles.playerList} aria-live="polite">
+            {vm.players.map((player) => (
+              <li key={player.id} className={styles.player}>
+                {player.nickname}
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
     </section>
   );
 }
