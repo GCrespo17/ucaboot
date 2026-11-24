@@ -220,7 +220,23 @@ host:next {pin, última}    ─────▶ final
                            ◀───── game:finished                game:over ─────▶
 ```
 
-## 8. Compatibilidad con el frontend actual
+## 8. Guardar la partida al cerrar (HU-8.4)
+
+No es un evento nuevo. Al llegar a `final`, `GameService.nextQuestion` guarda la sala en el estado efímero y emite `game:finished` / `game:over`. **Todavía no escribe el historial.** Eso lo hace el servicio de datos, que ya está en el contenedor:
+
+```ts
+await container.gameHistoryService.recordFinishedGame(room, "completed");
+```
+
+Dónde llamarlo (Gabriel Crespo, motor de juego):
+
+- Justo **después** de `rooms.save` cuando `result.room.phase === "final"`, con `"completed"`.
+- En el cierre por anfitrión ausente (HU-10.2 FA3), cuando exista, con `"hostAbsent"`. La sala ya empezó (`rosterIds` fijado) aunque no se hayan proyectado todas las preguntas.
+- No llamarlo al cerrar el lobby (HU-4.7): no hay lista fijada y el servicio responde `GAME_NOT_RECORDABLE` sin escribir nada.
+
+Si el guardado falla, la pantalla final se queda y se puede reintentar (FA1). Un segundo llamado exitoso de la misma sala devuelve `{ created: false }` y no crea otra fila: la clave es `pin:createdAt`. El log de ese guardado no incluye apodos.
+
+## 9. Compatibilidad con el frontend actual
 
 `frontend/src/model/participant/participantReducer.ts` ya consume estos campos; mantienen nombre y significado:
 

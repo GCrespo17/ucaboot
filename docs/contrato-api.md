@@ -433,6 +433,7 @@ Estas historias no tienen ruta aquí. El editor de corte 1 no las llama.
 - HU-2.9, rechazar edición o borrado mientras hay una partida abierta de ese cuestionario.
 - HU-3.4, reordenar preguntas. En este corte el orden lo fijan el alta (al final) y el borrado (compacta).
 - HU-3.5, imagen de la pregunta. `imageUrl` llega en `null`.
+- HU-8.4, guardar la partida. No tiene ruta: lo escribe el backend al cerrar la sala (ver [contrato de eventos](contrato-eventos.md), sección 8). El historial se consulta en HU-9.1.
 
 ## 7. De la biblioteca a la sala
 
