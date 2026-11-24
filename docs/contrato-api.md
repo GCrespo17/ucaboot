@@ -527,3 +527,9 @@ Un `gameId` que no es UUID responde **404**, igual que una partida ajena.
 ```json
 { "error": "GAME_NOT_FOUND", "message": "Game not found" }
 ```
+
+### `GET /api/games/:gameId/export.csv` (HU-9.3)
+
+Misma autorización que el detalle. Responde **200** con `Content-Type: text/csv; charset=utf-8` y `Content-Disposition: attachment; filename="ucaboot-<fecha>.csv"`, donde `<fecha>` es el día UTC de `finishedAt`. El cuerpo empieza con la marca de orden de bytes. No tiene tipo en el frontend: el navegador descarga el archivo.
+
+Columnas, en este orden: `puesto`, `apodo`, `puntaje`, `aciertos`, `respuestas`, `tiempo promedio (s)`. La última queda vacía si no hubo respuestas aceptadas. Una partida ajena o inexistente responde **404** `GAME_NOT_FOUND`, sin archivo.

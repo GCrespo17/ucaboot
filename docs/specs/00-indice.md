@@ -59,7 +59,7 @@ Estas reglas se usan en varias historias. Cada historia las aplica; no se repite
 | 2. Gestión de cuestionarios | E2 y E3. Reordenar preguntas es una historia añadida |
 | 3. Flujo de juego en tiempo real | E4, E6, E7 y E8 |
 | 4. Experiencia del participante | E5, E6, E7, E8 y E10 |
-| 5. Historial y estadísticas | E9 |
+| 5. Historial y estadísticas | E9, incluida la exportación CSV (HU-9.3) |
 | Resiliencia ante desconexiones | E10 |
 | Límite de sala | E4. No aparece en el README; se acordó como alcance del producto |
 
