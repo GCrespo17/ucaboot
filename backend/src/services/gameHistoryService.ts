@@ -1,6 +1,6 @@
 import { buildGameRecord, type EndReason } from "../domain/history/gameRecord.js";
 import type { Room } from "../domain/game/model/room.js";
-import type { GameHistory, InsertedGame } from "../domain/ports/GameHistory.js";
+import type { GameHistory, GameListItem, InsertedGame, StoredGame } from "../domain/ports/GameHistory.js";
 import { AppError } from "./errors.js";
 
 interface GameHistoryServiceDeps {
@@ -21,5 +21,15 @@ export class GameHistoryService {
       throw new AppError("GAME_NOT_RECORDABLE", "Game cannot be stored");
     }
     return this.deps.history.insertIfAbsent(buildGameRecord(room, endReason));
+  }
+
+  list(hostId: string): Promise<GameListItem[]> {
+    return this.deps.history.listByHost(hostId);
+  }
+
+  async get(hostId: string, gameId: string): Promise<StoredGame> {
+    const game = await this.deps.history.findOwned(gameId, hostId);
+    if (!game) throw new AppError("GAME_NOT_FOUND", "Game not found");
+    return game;
   }
 }

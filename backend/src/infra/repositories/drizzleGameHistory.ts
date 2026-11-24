@@ -1,6 +1,6 @@
-import { eq } from "drizzle-orm";
-import type { GameRecord } from "../../domain/history/gameRecord.js";
-import type { GameHistory, InsertedGame } from "../../domain/ports/GameHistory.js";
+import { and, asc, desc, eq } from "drizzle-orm";
+import type { EndReason, GameRecord, RecordedOption } from "../../domain/history/gameRecord.js";
+import type { GameHistory, GameListItem, InsertedGame, StoredGame } from "../../domain/ports/GameHistory.js";
 import { db } from "../db/client.js";
 import { gamePlayers, gameQuestions, games } from "../db/schema.js";
 
@@ -68,4 +68,70 @@ export class DrizzleGameHistory implements GameHistory {
       return { gameId: inserted.id, created: true };
     });
   }
+
+  async listByHost(hostId: string): Promise<GameListItem[]> {
+    const rows = await this.database
+      .select()
+      .from(games)
+      .where(eq(games.hostId, hostId))
+      .orderBy(desc(games.finishedAt));
+    return rows.map(toListItem);
+  }
+
+  async findOwned(gameId: string, hostId: string): Promise<StoredGame | null> {
+    const [game] = await this.database
+      .select()
+      .from(games)
+      .where(and(eq(games.id, gameId), eq(games.hostId, hostId)));
+    if (!game) return null;
+    const players = await this.database
+      .select()
+      .from(gamePlayers)
+      .where(eq(gamePlayers.gameId, gameId))
+      .orderBy(asc(gamePlayers.rank), asc(gamePlayers.joinOrder));
+    const questions = await this.database
+      .select()
+      .from(gameQuestions)
+      .where(eq(gameQuestions.gameId, gameId))
+      .orderBy(asc(gameQuestions.position));
+    return {
+      ...toListItem(game),
+      players: players.map((player) => ({
+        nickname: player.nickname,
+        rank: player.rank,
+        totalScore: player.totalScore,
+        correctCount: player.correctCount,
+        answeredCount: player.answeredCount,
+        avgResponseMs: player.avgResponseMs,
+        joinOrder: player.joinOrder,
+      })),
+      questions: questions.map((question) => ({
+        position: question.position,
+        text: question.text,
+        presented: question.presented,
+        noAnswerCount: question.noAnswerCount,
+        options: question.options as RecordedOption[],
+      })),
+    };
+  }
+}
+
+function toListItem(row: {
+  id: string;
+  quizTitle: string;
+  finishedAt: Date;
+  playerCount: number;
+  presentedQuestions: number;
+  totalQuestions: number;
+  endReason: string;
+}): GameListItem {
+  return {
+    id: row.id,
+    quizTitle: row.quizTitle,
+    finishedAt: row.finishedAt,
+    playerCount: row.playerCount,
+    presentedQuestions: row.presentedQuestions,
+    totalQuestions: row.totalQuestions,
+    endReason: row.endReason as EndReason,
+  };
 }

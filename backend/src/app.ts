@@ -5,6 +5,7 @@ import { rateLimit } from "./controllers/middlewares/rateLimit.js";
 import { securityHeaders } from "./controllers/middlewares/securityHeaders.js";
 import { errorHandler } from "./controllers/rest/errorHandler.js";
 import { healthRouter } from "./controllers/rest/routes/health.js";
+import { gamesRouter } from "./controllers/rest/routes/games.js";
 import { quizzesRouter } from "./controllers/rest/routes/quizzes.js";
 import { roomsRouter } from "./controllers/rest/routes/rooms.js";
 import { requestLogger } from './controllers/middlewares/logger.js';
@@ -31,6 +32,7 @@ export function createApp(container: Container) {
 
   app.use("/api", rateLimit(container.limits.api, (req) => req.ip ?? "unknown"));
   app.use("/api/quizzes", quizzesRouter(container));
+  app.use("/api/games", gamesRouter(container));
   app.use("/api/rooms", roomsRouter(container));
   app.use(errorHandler(container.logger));
 
