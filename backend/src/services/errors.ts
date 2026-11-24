@@ -15,6 +15,7 @@ export type ErrorCode =
   | "VALIDATION_ERROR"
   | "PAYLOAD_TOO_LARGE"
   | "RATE_LIMITED"
+  | "GAME_NOT_RECORDABLE"
   | "INTERNAL";
 
 export class AppError extends Error {

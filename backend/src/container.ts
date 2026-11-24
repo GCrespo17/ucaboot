@@ -7,6 +7,7 @@ import type { RoomStateStore } from "./domain/ports/RoomStateStore.js";
 import type { Scheduler } from "./domain/ports/Scheduler.js";
 import { CryptoIdGenerator } from "./infra/ids/cryptoIdGenerator.js";
 import { ConsoleLogger } from "./infra/logging/consoleLogger.js";
+import { DrizzleGameHistory } from "./infra/repositories/drizzleGameHistory.js";
 import { DrizzleQuizRepository } from "./infra/repositories/drizzleQuizRepository.js";
 import { InMemoryRoomLock } from "./infra/state/inMemoryRoomLock.js";
 import { InMemoryRoomStateStore } from "./infra/state/inMemoryRoomStateStore.js";
@@ -19,6 +20,7 @@ import { JoinAttempts } from "./controllers/sockets/joinAttempts.js";
 import type { HealthCheck } from "./controllers/rest/routes/health.js";
 import { pingDatabase } from "./infra/db/health.js";
 import { FixedWindowLimiter } from "./infra/rateLimit/fixedWindowLimiter.js";
+import { GameHistoryService } from "./services/gameHistoryService.js";
 import { GameService } from "./services/gameService.js";
 import { PlayerService } from "./services/playerService.js";
 import { QuizService } from "./services/quizService.js";
@@ -41,6 +43,7 @@ export function buildContainer(io: GameServer) {
   const quizService = new QuizService({ catalog: quizStore, clock });
   const playerService = new PlayerService({ rooms, lock, clock, ids, notifier });
   const gameService = new GameService({ rooms, lock, clock, scheduler, notifier });
+  const gameHistoryService = new GameHistoryService({ history: new DrizzleGameHistory() });
 
   // Abuse limits (per backend instance)
   const limits = {
@@ -66,6 +69,7 @@ export function buildContainer(io: GameServer) {
     quizService,
     playerService,
     gameService,
+    gameHistoryService,
     limits,
     joinAttempts,
     healthChecks,
