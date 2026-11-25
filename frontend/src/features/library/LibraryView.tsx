@@ -27,6 +27,15 @@ export function LibraryView() {
         </div>
       )}
 
+      {vm.duplicateError && (
+        <div className={styles.notice}>
+          <FormMessage>{vm.duplicateError}</FormMessage>
+          <Button variant="secondary" onClick={vm.dismissDuplicateError} aria-label="Cerrar aviso">
+            ×
+          </Button>
+        </div>
+      )}
+
       {vm.status === "cargando" && (
         <ul className={styles.grid} aria-busy="true" aria-label="Cargando cuestionarios">
           {[0, 1, 2].map((key) => (
@@ -70,6 +79,14 @@ export function LibraryView() {
                 <LinkButton to={quiz.href} variant="secondary">
                   Abrir
                 </LinkButton>
+                <Button
+                  variant="secondary"
+                  onClick={() => vm.duplicate(quiz.id)}
+                  disabled={vm.duplicateDisabled}
+                  aria-label={`Duplicar «${quiz.title}»`}
+                >
+                  {quiz.duplicating ? "Duplicando…" : "Duplicar"}
+                </Button>
                 <Button variant="secondary" onClick={() => vm.askDelete(quiz.id)}>
                   Eliminar
                 </Button>

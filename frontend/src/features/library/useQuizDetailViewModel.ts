@@ -1,11 +1,12 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { apiErrorMessage, isApiError } from "../../model/api/http";
 import { previewSlides } from "../../model/quizzes/preview";
 import { useDeleteQuestion, useDeleteQuiz, useQuiz } from "../../model/quizzes/quizQueries";
 import type { Question } from "../../model/types/quiz";
 import type { LibraryNotice } from "./useLibraryViewModel";
 import { formatUpdatedAt, questionCountLabel } from "./formatUpdatedAt";
+import { useDuplicate } from "./useDuplicate";
 import { useStartGame } from "./useStartGame";
 
 const LIBRARY = "/anfitrion/cuestionarios";
@@ -16,11 +17,16 @@ type QuestionEditor = "nueva" | Question | null;
 
 // HU-2.3 ver el detalle, HU-2.4 editar sus datos y HU-2.5 eliminarlo.
 // HU-3.1 a HU-3.3 agregar, editar y eliminar sus preguntas. HU-4.1 iniciar partida. HU-2.8 vista previa.
+// HU-2.7 duplicar.
 export function useQuizDetailViewModel(quizId: string) {
   const navigate = useNavigate();
+  const location = useLocation();
   const quiz = useQuiz(quizId);
   const deleteQuiz = useDeleteQuiz();
   const startGame = useStartGame();
+  const duplicate = useDuplicate();
+  // Aviso que deja otra pantalla al abrir este detalle (p. ej. "Se creó «… (copia)»")
+  const [notice, setNotice] = useState(() => (location.state as LibraryNotice)?.notice ?? null);
   const deleteQuestion = useDeleteQuestion(quizId);
   const [editing, setEditing] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
@@ -142,6 +148,15 @@ export function useQuizDetailViewModel(quizId: string) {
     startGameLabel: startGame.startingQuizId != null ? "Abriendo sala…" : "Iniciar partida",
     startPending: startGame.startingQuizId != null,
     startQuiz: () => startGame.start(quizId),
+
+    notice,
+    dismissNotice: () => setNotice(null),
+
+    // HU-2.7: disponible aunque el cuestionario esté en una partida
+    duplicate: () => duplicate.duplicate(quizId),
+    duplicating: duplicate.duplicatingQuizId != null,
+    duplicateError: duplicate.error,
+    dismissDuplicateError: duplicate.dismissError,
 
     // HU-2.8 FA1: sin preguntas completas no se abre la vista previa
     previewPath: `${LIBRARY}/${quizId}/vista-previa`,

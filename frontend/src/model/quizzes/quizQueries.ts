@@ -114,10 +114,9 @@ export function useDuplicateQuiz() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (quizId: string) => duplicateQuiz(quizId),
-    onSuccess: (copy) => {
-      queryClient.setQueryData(quizKeys.detail(copy.id), copy);
-      void queryClient.invalidateQueries({ queryKey: quizKeys.list });
-    },
+    onSuccess: (copy) => queryClient.setQueryData(quizKeys.detail(copy.id), copy),
+    // Haya copia o no (FA1: el original ya no existe), la lista se vuelve a pedir
+    onSettled: () => queryClient.invalidateQueries({ queryKey: quizKeys.list }),
   });
 }
 
