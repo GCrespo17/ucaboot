@@ -287,7 +287,17 @@ El historial de partidas ya guardadas es de corte 2 y no forma parte de esta res
 
 ### `POST /api/quizzes/:quizId/duplicate` (HU-2.7)
 
-Responde **201** con un `QuizDetail` de la copia. El título es el original más ` (copia)`, recortado a 80 caracteres conservando el sufijo. Si el título ya termina en ` (copia)`, se añade otro. La copia incluye descripción, portada, preguntas y opciones, con ids nuevos. No copia partidas. El original no cambia. Una partida activa del original no impide duplicar. Un cuestionario ajeno responde **404** `QUIZ_NOT_FOUND`. Si la copia no puede completarse, no queda un cuestionario parcial.
+Responde **201** con un `QuizDetail` de la copia. El título es el original más ` (copia)`, recortado a 80 caracteres conservando el sufijo. Si el título ya termina en ` (copia)`, se añade otro. La copia incluye descripción, portada, preguntas y opciones, con ids nuevos. No copia partidas. El original no cambia. Una partida activa del original no impide duplicar. Un cuestionario ajeno responde **404** `QUIZ_NOT_FOUND`. Si la copia no puede completarse, no queda un cuestionario parcial. La portada, si existe, se copia a un archivo nuevo: la copia no comparte el archivo del original.
+
+### `PUT /api/quizzes/:quizId/cover` y `DELETE /api/quizzes/:quizId/cover` (HU-2.6)
+
+`PUT` no manda JSON. El cuerpo es el archivo, como máximo 2 MB. El tipo se decide por los primeros bytes (JPEG, PNG o WebP), no por la cabecera `Content-Type`. Responde **200** con el `QuizDetail` y `coverUrl` apuntando al archivo. Reemplazar borra el archivo anterior. `DELETE` deja `coverUrl` en `null` y borra el archivo. Un archivo que no es imagen responde **415** `UNSUPPORTED_MEDIA_TYPE`. Más de 2 MB responde **413** `PAYLOAD_TOO_LARGE`. Con partida activa, **409** `QUIZ_IN_GAME`.
+
+En local `coverUrl` es una ruta `/api/files/<nombre>`. En la nube es la URL pública del bucket de Supabase Storage. El bucket se crea público solo para lectura: escribe el backend con la clave de servicio, que no va al repositorio.
+
+```json
+{ "error": "UNSUPPORTED_MEDIA_TYPE", "message": "Unsupported image" }
+```
 
 ## 4. Preguntas
 
@@ -442,6 +452,8 @@ El cliente vuelve a pedir `GET /api/quizzes/:quizId` para ver las posiciones nue
 | `GAME_NOT_FOUND` | 404 | La partida no existe o es de otra cuenta |
 | `QUESTION_SET_CHANGED` | 409 | El orden no es una permutación de las preguntas actuales |
 | `QUIZ_IN_GAME` | 409 | El cuestionario tiene una sala abierta. No se edita ni se borra. Duplicar sí se permite |
+| `UNSUPPORTED_MEDIA_TYPE` | 415 | El archivo no es JPEG, PNG ni WebP |
+| `PAYLOAD_TOO_LARGE` | 413 | El cuerpo supera el límite (32 KB de JSON, o 2 MB en una imagen) |
 | `INTERNAL` | 500 | Fallo no previsto. Los datos guardados no cambian |
 
 `QUESTION_NOT_FOUND` todavía no está en `backend/src/services/errors.ts`. Se agrega en el PR de las rutas.
@@ -450,7 +462,6 @@ El cliente vuelve a pedir `GET /api/quizzes/:quizId` para ver las posiciones nue
 
 Estas historias no tienen ruta aquí. El editor de corte 1 no las llama.
 
-- HU-2.6, portada. `coverUrl` llega en `null`.
 - HU-2.8, vista previa. No crea sala ni puntaje.
 - HU-3.5, imagen de la pregunta. `imageUrl` llega en `null`.
 - HU-8.4, guardar la partida. No tiene ruta: lo escribe el backend al cerrar la sala (ver [contrato de eventos](contrato-eventos.md), sección 8). El historial se consulta en HU-9.1.

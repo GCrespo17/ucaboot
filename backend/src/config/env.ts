@@ -17,6 +17,11 @@ const schema = z.object({
   // platform's load balancer in the cloud). The client IP is read that many hops back;
   // trusting more than the real count would let clients forge their IP and dodge rate limits.
   TRUST_PROXY_HOPS: z.coerce.number().int().min(0).default(1),
+  // local: files on disk, served at /api/files. supabase: Supabase Storage (service role, server only).
+  STORAGE_DRIVER: z.enum(["local", "supabase"]).default("local"),
+  STORAGE_DIR: z.string().min(1).default("/tmp/ucaboot-files"),
+  SUPABASE_SERVICE_ROLE_KEY: z.string().default(""),
+  SUPABASE_STORAGE_BUCKET: z.string().default(""),
 });
 
 export const env = schema.parse(process.env);

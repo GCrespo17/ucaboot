@@ -5,6 +5,7 @@ import { rateLimit } from "./controllers/middlewares/rateLimit.js";
 import { securityHeaders } from "./controllers/middlewares/securityHeaders.js";
 import { errorHandler } from "./controllers/rest/errorHandler.js";
 import { healthRouter } from "./controllers/rest/routes/health.js";
+import { filesRouter } from "./controllers/rest/routes/files.js";
 import { gamesRouter } from "./controllers/rest/routes/games.js";
 import { quizzesRouter } from "./controllers/rest/routes/quizzes.js";
 import { roomsRouter } from "./controllers/rest/routes/rooms.js";
@@ -31,6 +32,7 @@ export function createApp(container: Container) {
   app.use("/api/health", healthRouter(container.healthChecks, container.logger));
 
   app.use("/api", rateLimit(container.limits.api, (req) => req.ip ?? "unknown"));
+  app.use("/api/files", filesRouter(env.STORAGE_DIR));
   app.use("/api/quizzes", quizzesRouter(container));
   app.use("/api/games", gamesRouter(container));
   app.use("/api/rooms", roomsRouter(container));

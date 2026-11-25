@@ -147,6 +147,16 @@ export class DrizzleQuizRepository implements QuizCatalog, QuizRepository {
     });
   }
 
+  async setCoverUrl(quizId: string, hostId: string, coverUrl: string | null, at: Date): Promise<StoredQuiz | null> {
+    const [row] = await this.database
+      .update(quizzes)
+      .set({ coverUrl, updatedAt: at })
+      .where(and(eq(quizzes.id, quizId), eq(quizzes.hostId, hostId)))
+      .returning({ id: quizzes.id });
+    if (!row) return null;
+    return loadQuiz(this.database, quizId, hostId);
+  }
+
   reorderQuestions(
     quizId: string,
     hostId: string,

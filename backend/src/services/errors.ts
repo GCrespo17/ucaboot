@@ -19,6 +19,7 @@ export type ErrorCode =
   | "GAME_NOT_RECORDABLE"
   | "QUESTION_SET_CHANGED"
   | "QUIZ_IN_GAME"
+  | "UNSUPPORTED_MEDIA_TYPE"
   | "INTERNAL";
 
 export class AppError extends Error {

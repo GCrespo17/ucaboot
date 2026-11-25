@@ -9,6 +9,7 @@ proxy_set_header Connection $connection_upgrade;
 
 # Backend REST API
 location /api/ {
+  client_max_body_size 3m;
   proxy_pass http://backend:${BACKEND_PORT};
 }
 

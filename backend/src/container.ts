@@ -7,6 +7,7 @@ import type { RoomStateStore } from "./domain/ports/RoomStateStore.js";
 import type { Scheduler } from "./domain/ports/Scheduler.js";
 import { CryptoIdGenerator } from "./infra/ids/cryptoIdGenerator.js";
 import { ConsoleLogger } from "./infra/logging/consoleLogger.js";
+import { buildFileStorage } from "./infra/storage/buildStorage.js";
 import { DrizzleGameHistory } from "./infra/repositories/drizzleGameHistory.js";
 import { DrizzleQuizRepository } from "./infra/repositories/drizzleQuizRepository.js";
 import { InMemoryRoomLock } from "./infra/state/inMemoryRoomLock.js";
@@ -40,7 +41,8 @@ export function buildContainer(io: GameServer) {
   const notifier: GameNotifier = new SocketNotifier(io);
 
   const roomService = new RoomService({ quizzes, rooms, lock, clock, ids });
-  const quizService = new QuizService({ catalog: quizStore, clock, rooms, lock });
+  const storage = buildFileStorage();
+  const quizService = new QuizService({ catalog: quizStore, clock, rooms, lock, storage, logger });
   const playerService = new PlayerService({ rooms, lock, clock, ids, notifier });
   const gameService = new GameService({ rooms, lock, clock, scheduler, notifier });
   const gameHistoryService = new GameHistoryService({ history: new DrizzleGameHistory() });

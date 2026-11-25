@@ -1,5 +1,8 @@
 import type { Clock } from "../domain/ports/Clock.js";
+import type { FileStorage } from "../domain/ports/FileStorage.js";
+import type { Logger } from "../domain/ports/Logger.js";
 import type { RoomLock } from "../domain/ports/RoomLock.js";
+import { detectImageType, MAX_IMAGE_BYTES } from "../domain/quiz/imageFile.js";
 import type {
   QuestionLookup,
   QuestionWrite,
@@ -20,6 +23,8 @@ interface QuizServiceDeps {
   clock: Clock;
   rooms: OpenRoomLookup;
   lock: RoomLock;
+  storage: FileStorage;
+  logger: Logger;
 }
 
 export class QuizService {
@@ -51,8 +56,10 @@ export class QuizService {
 
   delete(hostId: string, quizId: string): Promise<void> {
     return this.guarded(hostId, quizId, async () => {
+      const quiz = await this.get(hostId, quizId);
       const deleted = await this.deps.catalog.deleteQuiz(quizId, hostId);
       if (!deleted) throw new AppError("QUIZ_NOT_FOUND", "Quiz not found");
+      await this.discard(quiz.coverUrl);
     });
   }
 
@@ -68,7 +75,41 @@ export class QuizService {
   async duplicate(hostId: string, quizId: string): Promise<StoredQuiz> {
     const quiz = await this.deps.catalog.duplicateQuiz(quizId, hostId, this.now());
     if (!quiz) throw new AppError("QUIZ_NOT_FOUND", "Quiz not found");
-    return quiz;
+    if (!quiz.coverUrl) return quiz;
+    try {
+      const url = await this.deps.storage.copy(quiz.coverUrl);
+      return (await this.deps.catalog.setCoverUrl(quiz.id, hostId, url, this.now())) ?? quiz;
+    } catch (error) {
+      await this.deps.catalog.deleteQuiz(quiz.id, hostId);
+      this.deps.logger.error("could not copy quiz cover", { error: String(error) });
+      throw new AppError("INTERNAL", "Could not duplicate the quiz");
+    }
+  }
+
+  setCover(hostId: string, quizId: string, bytes: Buffer): Promise<StoredQuiz> {
+    const type = bytes.length > 0 && bytes.length <= MAX_IMAGE_BYTES ? detectImageType(bytes) : null;
+    if (!type) return Promise.reject(new AppError("UNSUPPORTED_MEDIA_TYPE", "Unsupported image"));
+    return this.guarded(hostId, quizId, async () => {
+      const current = await this.get(hostId, quizId);
+      const url = await this.deps.storage.put(bytes, type);
+      const updated = await this.deps.catalog.setCoverUrl(quizId, hostId, url, this.now());
+      if (!updated) {
+        await this.discard(url);
+        throw new AppError("QUIZ_NOT_FOUND", "Quiz not found");
+      }
+      if (current.coverUrl && current.coverUrl !== url) await this.discard(current.coverUrl);
+      return updated;
+    });
+  }
+
+  clearCover(hostId: string, quizId: string): Promise<StoredQuiz> {
+    return this.guarded(hostId, quizId, async () => {
+      const current = await this.get(hostId, quizId);
+      const updated = await this.deps.catalog.setCoverUrl(quizId, hostId, null, this.now());
+      if (!updated) throw new AppError("QUIZ_NOT_FOUND", "Quiz not found");
+      await this.discard(current.coverUrl);
+      return updated;
+    });
   }
 
   addQuestion(hostId: string, quizId: string, input: QuestionWrite): Promise<StoredQuestion> {
@@ -109,6 +150,15 @@ export class QuizService {
       if (open?.quiz.quizId === quizId) throw new AppError("QUIZ_IN_GAME", "Quiz is in a live game");
       return task();
     });
+  }
+
+  private async discard(url: string | null): Promise<void> {
+    if (!url) return;
+    try {
+      await this.deps.storage.remove(url);
+    } catch (error) {
+      this.deps.logger.error("could not delete stored file", { error: String(error) });
+    }
   }
 
   private now(): Date {
