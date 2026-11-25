@@ -4,6 +4,7 @@ import { apiErrorMessage, isApiError } from "../../model/api/http";
 import { useDeleteQuiz, useQuizzes } from "../../model/quizzes/quizQueries";
 import type { QuizDetail, QuizSummary } from "../../model/types/quiz";
 import { formatUpdatedAt, questionCountLabel } from "./formatUpdatedAt";
+import { useDuplicate } from "./useDuplicate";
 import { useStartGame } from "./useStartGame";
 
 // Aviso que deja otra pantalla al volver a la lista (p. ej. un cuestionario que ya no existe)
@@ -11,13 +12,14 @@ export type LibraryNotice = { notice?: string } | null;
 
 export const quizPath = (quizId: string) => `/anfitrion/cuestionarios/${quizId}`;
 
-// HU-2.2 listar, HU-2.1 crear, HU-2.5 eliminar y HU-4.1 iniciar partida desde la lista
+// HU-2.2 listar, HU-2.1 crear, HU-2.5 eliminar, HU-2.7 duplicar y HU-4.1 iniciar partida desde la lista
 export function useLibraryViewModel() {
   const navigate = useNavigate();
   const location = useLocation();
   const quizzes = useQuizzes();
   const deleteQuiz = useDeleteQuiz();
   const startGame = useStartGame();
+  const duplicate = useDuplicate();
   const [notice, setNotice] = useState(() => (location.state as LibraryNotice)?.notice ?? null);
   const [creating, setCreating] = useState(false);
   const [toDelete, setToDelete] = useState<QuizSummary | null>(null);
@@ -39,6 +41,7 @@ export function useLibraryViewModel() {
     questions: questionCountLabel(quiz.questionCount),
     updated: `Modificado ${formatUpdatedAt(quiz.updatedAt)}`,
     starting: startGame.startingQuizId === quiz.id,
+    duplicating: duplicate.duplicatingQuizId === quiz.id,
   }));
 
   function askDelete(quizId: string) {
@@ -91,5 +94,11 @@ export function useLibraryViewModel() {
     startGame,
     // Mientras se crea una sala no se puede iniciar otra
     startDisabled: startGame.startingQuizId != null,
+
+    // HU-2.7
+    duplicate: duplicate.duplicate,
+    duplicateDisabled: duplicate.duplicatingQuizId != null,
+    duplicateError: duplicate.error,
+    dismissDuplicateError: duplicate.dismissError,
   };
 }

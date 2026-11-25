@@ -28,7 +28,7 @@ export class ApiError extends Error {
   }
 }
 
-type Method = "GET" | "POST" | "PATCH" | "DELETE";
+type Method = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
 
 type RequestOptions = { method?: Method; body?: unknown; signal?: AbortSignal };
 
@@ -88,6 +88,10 @@ export function apiErrorMessage(error: unknown): string {
     return `Demasiadas peticiones.${wait} y vuelve a intentar.`;
   }
   if (error.status === 401) return "Tu sesión venció. Inicia sesión de nuevo.";
+  // HU-2.9: vale para editar, borrar, reordenar y cambiar imágenes de un cuestionario en juego
+  if (error.code === "QUIZ_IN_GAME") {
+    return "Este cuestionario está en una partida abierta. Podrás editarlo cuando la partida termine.";
+  }
   return "El servidor no pudo completar la operación. Vuelve a intentar.";
 }
 

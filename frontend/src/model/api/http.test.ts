@@ -109,4 +109,8 @@ describe("mensajes de error", () => {
     );
     expect(apiErrorMessage(new Error("otro"))).toBe("Algo salió mal. Vuelve a intentar.");
   });
+
+  it("HU-2.9: explica que el cuestionario está en una partida, no un error genérico", () => {
+    expect(apiErrorMessage(new ApiError(409, "QUIZ_IN_GAME"))).toMatch(/está en una partida abierta/);
+  });
 });

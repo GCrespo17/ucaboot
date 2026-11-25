@@ -78,7 +78,7 @@ Reglas comunes, en `app/AppProviders.tsx`:
 
 ## Biblioteca de cuestionarios
 
-`features/library/` cubre HU-2.1 a HU-2.5: la lista en `/anfitrion/cuestionarios` (crear y eliminar) y el detalle en `/anfitrion/cuestionarios/:quizId` (ver preguntas, editar título y descripción, eliminar). Un cuestionario inexistente o de otra cuenta vuelve a la lista con un aviso.
+`features/library/` cubre HU-2.1 a HU-2.5 (y HU-2.7, 2.9 y 3.4, más abajo): la lista en `/anfitrion/cuestionarios` (crear y eliminar) y el detalle en `/anfitrion/cuestionarios/:quizId` (ver preguntas, editar título y descripción, eliminar). Un cuestionario inexistente o de otra cuenta vuelve a la lista con un aviso.
 
 ## Editor de preguntas
 
@@ -90,6 +90,12 @@ En el detalle del cuestionario se agregan, editan y eliminan preguntas (HU-3.1 a
 - Al editar, si nada cambió, el diálogo se cierra sin llamar al API.
 
 Las opciones se envían en el orden del formulario, sin las filas vacías, y el servidor les asigna la posición que fija el color. Si se deja vacía la fila 3 y se llena la 4, esa opción queda en tercer lugar (amarillo).
+
+## Duplicar, ordenar y partida activa
+
+- **Duplicar (HU-2.7):** botón en cada tarjeta de la biblioteca y en el detalle. El servidor copia todo en una transacción y arma el título «… (copia)» recortado a 80 caracteres; al terminar se abre el detalle de la copia con un aviso. Se permite aunque el original esté en una partida. El detalle se monta con `key={quizId}`, así al pasar de un cuestionario a otro por la misma ruta no arrastra diálogos ni avisos.
+- **Ordenar preguntas (HU-3.4):** "Ordenar preguntas" (solo con dos o más) abre un modo con ↑/↓ y un selector de puesto por pregunta; funciona con teclado y en el celular. Se trabaja sobre una copia de los ids y solo "Guardar orden" llama a `PUT /questions/order`. Cancelar restaura el orden guardado y guardar sin cambios no llama al API. Si otra sesión agregó o borró preguntas (`QUESTION_SET_CHANGED`), se recarga la lista y se pide ordenar de nuevo. Las reglas están en `model/quizzes/reorder.ts`.
+- **Partida activa (HU-2.9):** con una sala abierta de ese cuestionario el servidor responde `409 QUIZ_IN_GAME` al editar, borrar, reordenar o cambiar imágenes. `apiErrorMessage` lo traduce en un solo lugar, así todos los formularios explican que el cuestionario está en una partida.
 
 ## Vista previa
 

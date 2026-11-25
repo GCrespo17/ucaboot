@@ -7,12 +7,19 @@ import { FormMessage } from "../../ui/FormMessage";
 import { LinkButton } from "../../ui/LinkButton";
 import styles from "./Library.module.css";
 import { QuestionFormDialog } from "./QuestionFormDialog";
+import { QuestionOrderList } from "./QuestionOrderList";
 import { QuizFormDialog } from "./QuizFormDialog";
 import { StartGameDialog } from "./StartGameDialog";
 import { useQuizDetailViewModel } from "./useQuizDetailViewModel";
 
+// key: al pasar de un cuestionario a otro por la misma ruta (por ejemplo al duplicar, HU-2.7)
+// la pantalla empieza de cero y no arrastra diálogos ni avisos del anterior
 export function QuizDetailView() {
   const { quizId = "" } = useParams();
+  return <QuizDetail key={quizId} quizId={quizId} />;
+}
+
+function QuizDetail({ quizId }: { quizId: string }) {
   const vm = useQuizDetailViewModel(quizId);
 
   if (vm.status === "noDisponible") return <Navigate to={vm.libraryPath} replace state={vm.notAvailableState} />;
@@ -22,6 +29,24 @@ export function QuizDetailView() {
       <Link to={vm.libraryPath} className={styles.back}>
         ← Mis cuestionarios
       </Link>
+
+      {vm.notice && (
+        <div className={styles.notice}>
+          <FormMessage tone="info">{vm.notice}</FormMessage>
+          <Button variant="secondary" onClick={vm.dismissNotice} aria-label="Cerrar aviso">
+            ×
+          </Button>
+        </div>
+      )}
+
+      {vm.duplicateError && (
+        <div className={styles.notice}>
+          <FormMessage>{vm.duplicateError}</FormMessage>
+          <Button variant="secondary" onClick={vm.dismissDuplicateError} aria-label="Cerrar aviso">
+            ×
+          </Button>
+        </div>
+      )}
 
       {vm.status === "cargando" && <div className={`${styles.card} ${styles.skeleton}`} aria-busy="true" />}
 
@@ -55,6 +80,9 @@ export function QuizDetailView() {
                   Vista previa
                 </Button>
               )}
+              <Button variant="secondary" onClick={vm.duplicate} disabled={vm.duplicating}>
+                {vm.duplicating ? "Duplicando…" : "Duplicar"}
+              </Button>
               <Button variant="secondary" onClick={vm.openEdit}>
                 Editar datos
               </Button>
@@ -67,7 +95,16 @@ export function QuizDetailView() {
           <section aria-labelledby="preguntas-titulo" className={styles.questions}>
             <div className={styles.sectionHeader}>
               <h2 id="preguntas-titulo">Preguntas</h2>
-              <Button onClick={vm.openNewQuestion}>Agregar pregunta</Button>
+              {!vm.order.ordering && (
+                <div className={styles.cardActions}>
+                  {vm.order.available && (
+                    <Button variant="secondary" onClick={vm.startOrdering}>
+                      Ordenar preguntas
+                    </Button>
+                  )}
+                  <Button onClick={vm.openNewQuestion}>Agregar pregunta</Button>
+                </div>
+              )}
             </div>
 
             {vm.questionNotice && (
@@ -79,7 +116,9 @@ export function QuizDetailView() {
               </div>
             )}
 
-            {vm.details.questions.length === 0 ? (
+            {vm.order.ordering ? (
+              <QuestionOrderList order={vm.order} />
+            ) : vm.details.questions.length === 0 ? (
               <p className={styles.muted}>Este cuestionario todavía no tiene preguntas.</p>
             ) : (
               <ol className={styles.questionList}>
