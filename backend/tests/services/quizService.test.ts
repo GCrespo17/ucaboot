@@ -9,7 +9,8 @@ import type {
   StoredQuiz,
 } from "../../src/domain/ports/QuizCatalog.js";
 import { AppError } from "../../src/services/errors.js";
-import { QuizService } from "../../src/services/quizService.js";
+import type { RoomLock } from "../../src/domain/ports/RoomLock.js";
+import { QuizService, type OpenRoomLookup } from "../../src/services/quizService.js";
 import { copyTitle } from "../../src/domain/quiz/copyTitle.js";
 import { FakeClock } from "./fakes.js";
 
@@ -206,10 +207,29 @@ class MemoryCatalog implements QuizCatalog {
   }
 }
 
+class OpenRooms implements OpenRoomLookup {
+  quizId: string | null = null;
+
+  async findOpenByHost(): Promise<{ quiz: { quizId: string } } | null> {
+    return this.quizId ? { quiz: { quizId: this.quizId } } : null;
+  }
+}
+
+class RecordingLock implements RoomLock {
+  readonly keys: string[] = [];
+
+  run<T>(key: string, task: () => Promise<T>): Promise<T> {
+    this.keys.push(key);
+    return task();
+  }
+}
+
 function setup() {
   const clock = new FakeClock(1_000);
-  const service = new QuizService({ catalog: new MemoryCatalog(), clock });
-  return { service, clock };
+  const rooms = new OpenRooms();
+  const lock = new RecordingLock();
+  const service = new QuizService({ catalog: new MemoryCatalog(), clock, rooms, lock });
+  return { service, clock, rooms, lock };
 }
 
 function sameQuestionSet(current: string[], next: string[]): boolean {
@@ -348,6 +368,27 @@ describe("QuizService", () => {
     expect(swapped.questions.map((item) => item.position)).toEqual([0, 1]);
     expect(await codeOf(service.reorder(HOST, created.id, [first.id]))).toBe("QUESTION_SET_CHANGED");
     expect(await codeOf(service.reorder(OTHER, created.id, [second.id, first.id]))).toBe("QUIZ_NOT_FOUND");
+  });
+
+  it("rechaza editar, borrar y reordenar un cuestionario con sala abierta, y deja duplicar", async () => {
+    const { service, rooms, lock } = setup();
+    const created = await service.create(HOST, { title: "Capitales", description: null });
+    const other = await service.create(HOST, { title: "Otro", description: null });
+    const added = await service.addQuestion(HOST, created.id, question("Primera"));
+    rooms.quizId = created.id;
+
+    expect(await codeOf(service.update(HOST, created.id, { title: "Nuevo", description: null }))).toBe("QUIZ_IN_GAME");
+    expect(await codeOf(service.delete(HOST, created.id))).toBe("QUIZ_IN_GAME");
+    expect(await codeOf(service.addQuestion(HOST, created.id, question("Otra")))).toBe("QUIZ_IN_GAME");
+    expect(await codeOf(service.deleteQuestion(HOST, created.id, added.id))).toBe("QUIZ_IN_GAME");
+    expect(await codeOf(service.reorder(HOST, created.id, [added.id]))).toBe("QUIZ_IN_GAME");
+    expect((await service.get(HOST, created.id)).title).toBe("Capitales");
+
+    const copy = await service.duplicate(HOST, created.id);
+    expect(copy.title).toBe("Capitales (copia)");
+    const editedOther = await service.update(HOST, other.id, { title: "Otro editado", description: null });
+    expect(editedOther.title).toBe("Otro editado");
+    expect(lock.keys.every((key) => key === `host:${HOST}`)).toBe(true);
   });
 
   it("responde pregunta inexistente cuando el cuestionario sí es propio", async () => {

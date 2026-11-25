@@ -40,6 +40,7 @@ Los tipos de TypeScript entran con las rutas, duplicados en `backend/src/views/`
 - Los campos que este documento no nombra se ignoran.
 - `GET` sin resultados de lista responde **200** con `quizzes: []`. El **404** es solo de un `id` concreto.
 - `DELETE` responde **204** sin cuerpo. Confirmar el borrado es de la pantalla: el API borra al recibir la petición.
+- Si el cuestionario tiene una sala abierta (lobby, pregunta o revelación), editar, borrar, reordenar y cambiar imágenes responden **409** `QUIZ_IN_GAME`. Duplicar y leer siguen disponibles. El bloqueo usa el mismo candado que crear una sala, para que dos pestañas no se pisen.
 - Un fallo no previsto es **500** `INTERNAL` con `{ "error": "INTERNAL", "message": "Unexpected error" }`. No incluye el error interno. Lo ya guardado no cambia.
 - Sin token, o con un token inválido o vencido, cualquier ruta responde **401**:
 
@@ -440,6 +441,7 @@ El cliente vuelve a pedir `GET /api/quizzes/:quizId` para ver las posiciones nue
 | `QUESTION_NOT_FOUND` | 404 | La pregunta no pertenece a un cuestionario de esta cuenta |
 | `GAME_NOT_FOUND` | 404 | La partida no existe o es de otra cuenta |
 | `QUESTION_SET_CHANGED` | 409 | El orden no es una permutación de las preguntas actuales |
+| `QUIZ_IN_GAME` | 409 | El cuestionario tiene una sala abierta. No se edita ni se borra. Duplicar sí se permite |
 | `INTERNAL` | 500 | Fallo no previsto. Los datos guardados no cambian |
 
 `QUESTION_NOT_FOUND` todavía no está en `backend/src/services/errors.ts`. Se agrega en el PR de las rutas.
@@ -450,7 +452,6 @@ Estas historias no tienen ruta aquí. El editor de corte 1 no las llama.
 
 - HU-2.6, portada. `coverUrl` llega en `null`.
 - HU-2.8, vista previa. No crea sala ni puntaje.
-- HU-2.9, rechazar edición o borrado mientras hay una partida abierta de ese cuestionario.
 - HU-3.5, imagen de la pregunta. `imageUrl` llega en `null`.
 - HU-8.4, guardar la partida. No tiene ruta: lo escribe el backend al cerrar la sala (ver [contrato de eventos](contrato-eventos.md), sección 8). El historial se consulta en HU-9.1.
 
