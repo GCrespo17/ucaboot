@@ -4,8 +4,10 @@ import {
   createQuiz,
   deleteQuestion,
   deleteQuiz,
+  duplicateQuiz,
   getQuiz,
   listQuizzes,
+  reorderQuestions,
   updateQuestion,
   updateQuiz,
 } from "../api/quizzes";
@@ -104,5 +106,29 @@ export function useDeleteQuestion(quizId: string) {
       refreshQuiz(queryClient, quizId, (questions) =>
         questions.filter((q) => q.id !== questionId).map((q, position) => ({ ...q, position })),
       ),
+  });
+}
+
+// HU-2.7. La copia queda en caché para abrir su detalle sin otra petición.
+export function useDuplicateQuiz() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (quizId: string) => duplicateQuiz(quizId),
+    onSuccess: (copy) => {
+      queryClient.setQueryData(quizKeys.detail(copy.id), copy);
+      void queryClient.invalidateQueries({ queryKey: quizKeys.list });
+    },
+  });
+}
+
+// HU-3.4. El servidor devuelve el detalle con el orden nuevo.
+export function useReorderQuestions(quizId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (questionIds: string[]) => reorderQuestions(quizId, questionIds),
+    onSuccess: (quiz) => {
+      queryClient.setQueryData(quizKeys.detail(quiz.id), quiz);
+      void queryClient.invalidateQueries({ queryKey: quizKeys.list });
+    },
   });
 }

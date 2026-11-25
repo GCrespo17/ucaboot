@@ -1,4 +1,4 @@
-import type { Question, QuestionInput, QuizDetail, QuizInput, QuizSummary } from "../types/quiz";
+import type { Question, QuestionInput, QuestionOrder, QuizDetail, QuizInput, QuizSummary } from "../types/quiz";
 import { apiFetch } from "./http";
 
 // Rutas de cuestionarios y preguntas de docs/contrato-api.md (secciones 3 y 4)
@@ -27,6 +27,17 @@ export function updateQuiz(quizId: string, input: QuizInput): Promise<QuizDetail
 
 export function deleteQuiz(quizId: string): Promise<void> {
   return apiFetch<void>(quizPath(quizId), { method: "DELETE" });
+}
+
+// HU-2.7: el servidor copia todo en una transacción y devuelve el detalle de la copia
+export function duplicateQuiz(quizId: string): Promise<QuizDetail> {
+  return apiFetch<QuizDetail>(`${quizPath(quizId)}/duplicate`, { method: "POST" });
+}
+
+// HU-3.4: questionIds tiene que ser exactamente las preguntas actuales en el orden nuevo
+export function reorderQuestions(quizId: string, questionIds: string[]): Promise<QuizDetail> {
+  const body: QuestionOrder = { questionIds };
+  return apiFetch<QuizDetail>(`${quizPath(quizId)}/questions/order`, { method: "PUT", body });
 }
 
 export function createQuestion(quizId: string, input: QuestionInput): Promise<Question> {
