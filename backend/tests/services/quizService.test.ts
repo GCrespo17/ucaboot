@@ -9,8 +9,11 @@ import type {
   StoredQuiz,
 } from "../../src/domain/ports/QuizCatalog.js";
 import { AppError } from "../../src/services/errors.js";
+import type { FileStorage } from "../../src/domain/ports/FileStorage.js";
 import type { RoomLock } from "../../src/domain/ports/RoomLock.js";
+import type { ImageType } from "../../src/domain/quiz/imageFile.js";
 import { QuizService, type OpenRoomLookup } from "../../src/services/quizService.js";
+import { SilentLogger } from "./fakes.js";
 import { copyTitle } from "../../src/domain/quiz/copyTitle.js";
 import { FakeClock } from "./fakes.js";
 
@@ -100,6 +103,13 @@ class MemoryCatalog implements QuizCatalog {
     };
     this.quizzes.push({ hostId, quiz });
     return quiz;
+  }
+
+  async setCoverUrl(quizId: string, hostId: string, coverUrl: string | null, at: Date): Promise<StoredQuiz | null> {
+    const entry = this.entry(quizId, hostId);
+    if (!entry) return null;
+    entry.quiz = { ...entry.quiz, coverUrl, updatedAt: at };
+    return entry.quiz;
   }
 
   async reorderQuestions(
@@ -224,12 +234,35 @@ class RecordingLock implements RoomLock {
   }
 }
 
+class MemoryStorage implements FileStorage {
+  readonly files = new Map<string, Buffer>();
+  private sequence = 0;
+
+  async put(bytes: Buffer, type: ImageType): Promise<string> {
+    const extension = type === "image/png" ? "png" : type === "image/webp" ? "webp" : "jpg";
+    const url = `/api/files/00000000-0000-4000-8000-${String(++this.sequence).padStart(12, "0")}.${extension}`;
+    this.files.set(url, Buffer.from(bytes));
+    return url;
+  }
+
+  async remove(url: string): Promise<void> {
+    this.files.delete(url);
+  }
+
+  async copy(url: string): Promise<string> {
+    const bytes = this.files.get(url);
+    if (!bytes) throw new Error("missing file");
+    return this.put(bytes, "image/png");
+  }
+}
+
 function setup() {
   const clock = new FakeClock(1_000);
   const rooms = new OpenRooms();
   const lock = new RecordingLock();
-  const service = new QuizService({ catalog: new MemoryCatalog(), clock, rooms, lock });
-  return { service, clock, rooms, lock };
+  const storage = new MemoryStorage();
+  const service = new QuizService({ catalog: new MemoryCatalog(), clock, rooms, lock, storage, logger: new SilentLogger() });
+  return { service, clock, rooms, lock, storage };
 }
 
 function sameQuestionSet(current: string[], next: string[]): boolean {
@@ -389,6 +422,31 @@ describe("QuizService", () => {
     const editedOther = await service.update(HOST, other.id, { title: "Otro editado", description: null });
     expect(editedOther.title).toBe("Otro editado");
     expect(lock.keys.every((key) => key === `host:${HOST}`)).toBe(true);
+  });
+
+  it("guarda la portada, la reemplaza, la copia al duplicar y la quita", async () => {
+    const { service, storage } = setup();
+    const created = await service.create(HOST, { title: "Capitales", description: null });
+    const png = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 0]);
+
+    const withCover = await service.setCover(HOST, created.id, png);
+    expect(withCover.coverUrl).toMatch(/^\/api\/files\//);
+    expect(storage.files.size).toBe(1);
+
+    const replaced = await service.setCover(HOST, created.id, png);
+    expect(replaced.coverUrl).not.toBe(withCover.coverUrl);
+    expect(storage.files.has(withCover.coverUrl ?? "")).toBe(false);
+
+    const copy = await service.duplicate(HOST, created.id);
+    expect(copy.coverUrl).not.toBe(replaced.coverUrl);
+    expect(storage.files.has(replaced.coverUrl ?? "")).toBe(true);
+    expect(storage.files.has(copy.coverUrl ?? "")).toBe(true);
+
+    const cleared = await service.clearCover(HOST, created.id);
+    expect(cleared.coverUrl).toBeNull();
+    expect(storage.files.has(replaced.coverUrl ?? "")).toBe(false);
+    expect(await codeOf(service.setCover(HOST, created.id, Buffer.from("not an image")))).toBe("UNSUPPORTED_MEDIA_TYPE");
+    expect(await codeOf(service.setCover(OTHER, created.id, png))).toBe("QUIZ_NOT_FOUND");
   });
 
   it("responde pregunta inexistente cuando el cuestionario sí es propio", async () => {

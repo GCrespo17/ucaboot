@@ -1,4 +1,4 @@
-import { Router } from "express";
+import express, { Router } from "express";
 import type { Container } from "../../../container.js";
 import { AppError } from "../../../services/errors.js";
 import { toQuestion, toQuizDetail, toQuizSummary } from "../../../views/quizViews.js";
@@ -6,6 +6,8 @@ import { requireHost } from "../../middlewares/requireHost.js";
 import { parseCreateQuiz, parsePatchQuiz, parseQuestion, parseQuestionOrder } from "../quizInput.js";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+const imageBody = express.raw({ limit: "2mb", type: () => true });
 
 export function quizzesRouter(container: Container) {
   const router = Router();
@@ -32,6 +34,17 @@ export function quizzesRouter(container: Container) {
     const body = parsePatchQuiz(req.body);
     if (!body.ok) throw new AppError("VALIDATION_ERROR", "Invalid request", { fields: body.fields });
     const quiz = await container.quizService.update(hostId(res), ownedQuizId(req.params.quizId), body.value);
+    res.json(toQuizDetail(quiz));
+  });
+
+  router.put("/:quizId/cover", imageBody, async (req, res) => {
+    const bytes = Buffer.isBuffer(req.body) ? req.body : Buffer.alloc(0);
+    const quiz = await container.quizService.setCover(hostId(res), ownedQuizId(req.params.quizId), bytes);
+    res.json(toQuizDetail(quiz));
+  });
+
+  router.delete("/:quizId/cover", async (req, res) => {
+    const quiz = await container.quizService.clearCover(hostId(res), ownedQuizId(req.params.quizId));
     res.json(toQuizDetail(quiz));
   });
 

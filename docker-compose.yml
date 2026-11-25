@@ -77,6 +77,10 @@ services:
       # Locally, Supabase Auth is reached through nginx (/auth/v1), like in the cloud
       SUPABASE_URL: http://nginx:${APP_PORT}
       SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY}
+      STORAGE_DRIVER: local
+      STORAGE_DIR: /data/ucaboot-files
+    volumes:
+      - quiz-files:/data/ucaboot-files
     depends_on:
       db: { condition: service_healthy }
       redis: { condition: service_started }
@@ -97,3 +101,4 @@ services:
 
 volumes:
   pgdata:
+  quiz-files:
