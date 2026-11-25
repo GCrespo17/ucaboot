@@ -60,6 +60,12 @@ export interface QuizCatalog {
   ): Promise<StoredQuiz | null>;
   deleteQuiz(quizId: string, hostId: string): Promise<boolean>;
   duplicateQuiz(quizId: string, hostId: string, at: Date): Promise<StoredQuiz | null>;
+  reorderQuestions(
+    quizId: string,
+    hostId: string,
+    questionIds: string[],
+    at: Date,
+  ): Promise<StoredQuiz | "quiz-missing" | "set-changed">;
   insertQuestion(quizId: string, hostId: string, input: QuestionWrite, at: Date): Promise<QuestionLookup>;
   replaceQuestion(
     quizId: string,

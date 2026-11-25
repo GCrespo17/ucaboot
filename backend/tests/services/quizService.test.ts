@@ -101,6 +101,27 @@ class MemoryCatalog implements QuizCatalog {
     return quiz;
   }
 
+  async reorderQuestions(
+    quizId: string,
+    hostId: string,
+    questionIds: string[],
+    at: Date,
+  ): Promise<StoredQuiz | "quiz-missing" | "set-changed"> {
+    const entry = this.entry(quizId, hostId);
+    if (!entry) return "quiz-missing";
+    const current = entry.quiz.questions.map((item) => item.id);
+    if (!sameQuestionSet(current, questionIds)) return "set-changed";
+    if (current.every((id, index) => id === questionIds[index])) return entry.quiz;
+    const byId = new Map(entry.quiz.questions.map((item) => [item.id, item]));
+    entry.quiz.questions = questionIds.map((id, position) => {
+      const question = byId.get(id);
+      if (!question) throw new Error("missing question");
+      return { ...question, position };
+    });
+    entry.quiz.updatedAt = at;
+    return entry.quiz;
+  }
+
   async deleteQuiz(quizId: string, hostId: string): Promise<boolean> {
     const index = this.quizzes.findIndex((entry) => entry.hostId === hostId && entry.quiz.id === quizId);
     if (index < 0) return false;
@@ -189,6 +210,18 @@ function setup() {
   const clock = new FakeClock(1_000);
   const service = new QuizService({ catalog: new MemoryCatalog(), clock });
   return { service, clock };
+}
+
+function sameQuestionSet(current: string[], next: string[]): boolean {
+  if (current.length !== next.length) return false;
+  const counts = new Map<string, number>();
+  for (const id of current) counts.set(id, (counts.get(id) ?? 0) + 1);
+  for (const id of next) {
+    const left = counts.get(id) ?? 0;
+    if (left === 0) return false;
+    counts.set(id, left - 1);
+  }
+  return true;
 }
 
 async function codeOf(promise: Promise<unknown>): Promise<string> {
@@ -297,6 +330,24 @@ describe("QuizService", () => {
     expect(copy.questions[0]?.text).toBe("Primera");
     expect((await service.get(HOST, created.id)).title).toBe("Capitales");
     expect(await codeOf(service.duplicate(OTHER, created.id))).toBe("QUIZ_NOT_FOUND");
+  });
+
+  it("reordena las mismas preguntas y no escribe si el orden no cambia", async () => {
+    const { service, clock } = setup();
+    const created = await service.create(HOST, { title: "Capitales", description: null });
+    const first = await service.addQuestion(HOST, created.id, question("Primera"));
+    const second = await service.addQuestion(HOST, created.id, question("Segunda"));
+    const before = await service.get(HOST, created.id);
+    clock.set(9_000);
+
+    const same = await service.reorder(HOST, created.id, [first.id, second.id]);
+    expect(same.updatedAt).toEqual(before.updatedAt);
+
+    const swapped = await service.reorder(HOST, created.id, [second.id, first.id]);
+    expect(swapped.questions.map((item) => item.text)).toEqual(["Segunda", "Primera"]);
+    expect(swapped.questions.map((item) => item.position)).toEqual([0, 1]);
+    expect(await codeOf(service.reorder(HOST, created.id, [first.id]))).toBe("QUESTION_SET_CHANGED");
+    expect(await codeOf(service.reorder(OTHER, created.id, [second.id, first.id]))).toBe("QUIZ_NOT_FOUND");
   });
 
   it("responde pregunta inexistente cuando el cuestionario sí es propio", async () => {

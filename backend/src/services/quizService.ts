@@ -44,6 +44,13 @@ export class QuizService {
     if (!deleted) throw new AppError("QUIZ_NOT_FOUND", "Quiz not found");
   }
 
+  async reorder(hostId: string, quizId: string, questionIds: string[]): Promise<StoredQuiz> {
+    const result = await this.deps.catalog.reorderQuestions(quizId, hostId, questionIds, this.now());
+    if (result === "quiz-missing") throw new AppError("QUIZ_NOT_FOUND", "Quiz not found");
+    if (result === "set-changed") throw new AppError("QUESTION_SET_CHANGED", "Question set changed");
+    return result;
+  }
+
   async duplicate(hostId: string, quizId: string): Promise<StoredQuiz> {
     const quiz = await this.deps.catalog.duplicateQuiz(quizId, hostId, this.now());
     if (!quiz) throw new AppError("QUIZ_NOT_FOUND", "Quiz not found");

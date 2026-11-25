@@ -3,7 +3,7 @@ import type { Container } from "../../../container.js";
 import { AppError } from "../../../services/errors.js";
 import { toQuestion, toQuizDetail, toQuizSummary } from "../../../views/quizViews.js";
 import { requireHost } from "../../middlewares/requireHost.js";
-import { parseCreateQuiz, parsePatchQuiz, parseQuestion } from "../quizInput.js";
+import { parseCreateQuiz, parsePatchQuiz, parseQuestion, parseQuestionOrder } from "../quizInput.js";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -43,6 +43,13 @@ export function quizzesRouter(container: Container) {
   router.delete("/:quizId", async (req, res) => {
     await container.quizService.delete(hostId(res), ownedQuizId(req.params.quizId));
     res.status(204).send();
+  });
+
+  router.put("/:quizId/questions/order", async (req, res) => {
+    const body = parseQuestionOrder(req.body);
+    if (!body.ok) throw new AppError("VALIDATION_ERROR", "Invalid request", { fields: body.fields });
+    const quiz = await container.quizService.reorder(hostId(res), ownedQuizId(req.params.quizId), body.value.questionIds);
+    res.json(toQuizDetail(quiz));
   });
 
   router.post("/:quizId/questions", async (req, res) => {
