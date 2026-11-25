@@ -144,7 +144,14 @@ interface PlayerRoundResult {
   rank: number;
 }
 
-interface Standing { rank: number; playerId: string; nickname: string; totalScore: number }
+interface Standing {
+  rank: number;
+  playerId: string;
+  nickname: string;
+  totalScore: number;
+  correctCount: number;           // respuestas correctas en preguntas cerradas (HU-8.2)
+  avgResponseSeconds: number | null; // un decimal; null si no tuvo respuestas aceptadas (HU-8.2 FA1)
+}
 
 interface FinalView { standings: Standing[]; totalPlayers: number }
 

@@ -89,6 +89,8 @@ export interface Standing {
   playerId: string;
   nickname: string;
   totalScore: number;
+  correctCount: number;
+  avgResponseSeconds: number | null;
 }
 
 export interface FinalView {

@@ -4,6 +4,7 @@ import { answeredCount, currentQuestion, currentRound } from "../domain/game/roo
 import { optionCounts } from "../domain/game/roundSummary.js";
 import { standings } from "../domain/game/standings.js";
 import type { AnswerCountUpdate, FinalView, HostQuestionView, HostRoomSnapshot, RevealView } from "./events.js";
+import { toAvgSeconds } from "./historyViews.js";
 import { toViewPhase } from "./viewPhase.js";
 
 function activeRound(room: Room) {
@@ -81,11 +82,13 @@ export function toFinalView(room: Room): FinalView | null {
   if (room.phase !== "final") return null;
   const ranked = standings(room);
   return {
-    standings: ranked.map(({ rank, playerId, nickname, totalScore }) => ({
+    standings: ranked.map(({ rank, playerId, nickname, totalScore, correctCount, avgResponseMs }) => ({
       rank,
       playerId,
       nickname,
       totalScore,
+      correctCount,
+      avgResponseSeconds: toAvgSeconds(avgResponseMs),
     })),
     totalPlayers: ranked.length,
   };

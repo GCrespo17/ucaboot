@@ -169,8 +169,8 @@ describe("SocketNotifier", () => {
         event: "game:finished",
         payload: {
           standings: [
-            { rank: 1, playerId: "p1", nickname: "Player1", totalScore: 800 },
-            { rank: 2, playerId: "p2", nickname: "Player2", totalScore: 0 },
+            { rank: 1, playerId: "p1", nickname: "Player1", totalScore: 800, correctCount: 1, avgResponseSeconds: 2 },
+            { rank: 2, playerId: "p2", nickname: "Player2", totalScore: 0, correctCount: 0, avgResponseSeconds: null },
           ],
           totalPlayers: 2,
         },
