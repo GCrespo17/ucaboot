@@ -1,10 +1,12 @@
 import { sql } from "drizzle-orm";
 import { authUsers } from "drizzle-orm/supabase";
+import type { RecordedOption } from "../../domain/history/gameRecord.js";
 import {
   boolean,
   check,
   index,
   integer,
+  jsonb,
   pgTable,
   text,
   timestamp,
@@ -72,4 +74,64 @@ export const options = pgTable(
     unique("options_question_id_position_unique").on(table.questionId, table.position),
     check("options_position_check", sql`${table.position} between 0 and 3`),
   ],
+);
+
+// Finished games. A copy of what was played, so deleting the live quiz does not erase history.
+// room_key is pin + createdAt: one row per room, even if the same PIN is reused later.
+export const games = pgTable(
+  "games",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    hostId: uuid("host_id")
+      .notNull()
+      .references(() => authUsers.id, { onDelete: "cascade" }),
+    quizId: uuid("quiz_id").references(() => quizzes.id, { onDelete: "set null" }),
+    roomKey: varchar("room_key", { length: 80 }).notNull(),
+    quizTitle: varchar("quiz_title", { length: 80 }).notNull(),
+    totalQuestions: integer("total_questions").notNull(),
+    presentedQuestions: integer("presented_questions").notNull(),
+    playerCount: integer("player_count").notNull(),
+    startedAt: timestamp("started_at", { withTimezone: true }).notNull(),
+    finishedAt: timestamp("finished_at", { withTimezone: true }).notNull(),
+    endReason: varchar("end_reason", { length: 20 }).notNull(),
+  },
+  (table) => [
+    unique("games_room_key_unique").on(table.roomKey),
+    index("games_host_id_finished_at_idx").on(table.hostId, table.finishedAt.desc()),
+    check("games_end_reason_check", sql`${table.endReason} in ('completed', 'hostAbsent')`),
+  ],
+);
+
+export const gamePlayers = pgTable(
+  "game_players",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    gameId: uuid("game_id")
+      .notNull()
+      .references(() => games.id, { onDelete: "cascade" }),
+    nickname: varchar("nickname", { length: 20 }).notNull(),
+    rank: integer("rank").notNull(),
+    totalScore: integer("total_score").notNull(),
+    correctCount: integer("correct_count").notNull(),
+    answeredCount: integer("answered_count").notNull(),
+    avgResponseMs: integer("avg_response_ms"),
+    joinOrder: integer("join_order").notNull(),
+  },
+  (table) => [unique("game_players_game_id_join_order_unique").on(table.gameId, table.joinOrder)],
+);
+
+export const gameQuestions = pgTable(
+  "game_questions",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    gameId: uuid("game_id")
+      .notNull()
+      .references(() => games.id, { onDelete: "cascade" }),
+    position: integer("position").notNull(),
+    text: varchar("text", { length: 200 }).notNull(),
+    presented: boolean("presented").notNull(),
+    noAnswerCount: integer("no_answer_count"),
+    options: jsonb("options").$type<RecordedOption[]>().notNull(),
+  },
+  (table) => [unique("game_questions_game_id_position_unique").on(table.gameId, table.position)],
 );

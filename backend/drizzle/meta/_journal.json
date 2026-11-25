@@ -8,6 +8,13 @@
       "when": 1792984022522,
       "tag": "0000_old_cobalt_man",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1795564250330,
+      "tag": "0001_little_puppet_master",
+      "breakpoints": true
     }
   ]
 }
