@@ -10,6 +10,7 @@ import type {
 } from "../../src/domain/ports/QuizCatalog.js";
 import { AppError } from "../../src/services/errors.js";
 import { QuizService } from "../../src/services/quizService.js";
+import { copyTitle } from "../../src/domain/quiz/copyTitle.js";
 import { FakeClock } from "./fakes.js";
 
 const HOST = "host-1";
@@ -71,6 +72,33 @@ class MemoryCatalog implements QuizCatalog {
     if (!entry) return null;
     entry.quiz = { ...entry.quiz, title: input.title, description: input.description, updatedAt: input.at };
     return entry.quiz;
+  }
+
+  async duplicateQuiz(quizId: string, hostId: string, at: Date): Promise<StoredQuiz | null> {
+    const entry = this.entry(quizId, hostId);
+    if (!entry) return null;
+    const quiz: StoredQuiz = {
+      id: this.nextId(),
+      title: copyTitle(entry.quiz.title),
+      description: entry.quiz.description,
+      coverUrl: entry.quiz.coverUrl,
+      createdAt: at,
+      updatedAt: at,
+      questions: entry.quiz.questions.map((item) => ({
+        ...this.makeQuestion(
+          {
+            text: item.text,
+            timeLimitSeconds: item.timeLimitSeconds,
+            basePoints: item.basePoints,
+            options: item.options.map((option) => ({ text: option.text, isCorrect: option.isCorrect })),
+          },
+          item.position,
+        ),
+        imageUrl: item.imageUrl,
+      })),
+    };
+    this.quizzes.push({ hostId, quiz });
+    return quiz;
   }
 
   async deleteQuiz(quizId: string, hostId: string): Promise<boolean> {
@@ -252,6 +280,23 @@ describe("QuizService", () => {
     expect(await codeOf(service.updateQuestion(OTHER, created.id, added.id, question("Ajena")))).toBe("QUIZ_NOT_FOUND");
     expect(await codeOf(service.deleteQuestion(OTHER, created.id, added.id))).toBe("QUIZ_NOT_FOUND");
     expect((await service.get(HOST, created.id)).questions).toHaveLength(1);
+  });
+
+  it("duplica el cuestionario sin tocar el original y esconde el de otra cuenta", async () => {
+    const { service } = setup();
+    const created = await service.create(HOST, { title: "Capitales", description: "Geo" });
+    const added = await service.addQuestion(HOST, created.id, question("Primera"));
+
+    const copy = await service.duplicate(HOST, created.id);
+
+    expect(copy.id).not.toBe(created.id);
+    expect(copy.title).toBe("Capitales (copia)");
+    expect(copy.description).toBe("Geo");
+    expect(copy.questions).toHaveLength(1);
+    expect(copy.questions[0]?.id).not.toBe(added.id);
+    expect(copy.questions[0]?.text).toBe("Primera");
+    expect((await service.get(HOST, created.id)).title).toBe("Capitales");
+    expect(await codeOf(service.duplicate(OTHER, created.id))).toBe("QUIZ_NOT_FOUND");
   });
 
   it("responde pregunta inexistente cuando el cuestionario sí es propio", async () => {

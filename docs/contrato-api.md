@@ -284,6 +284,10 @@ Elimina el cuestionario, sus preguntas y sus opciones.
 
 El historial de partidas ya guardadas es de corte 2 y no forma parte de esta respuesta.
 
+### `POST /api/quizzes/:quizId/duplicate` (HU-2.7)
+
+Responde **201** con un `QuizDetail` de la copia. El título es el original más ` (copia)`, recortado a 80 caracteres conservando el sufijo. Si el título ya termina en ` (copia)`, se añade otro. La copia incluye descripción, portada, preguntas y opciones, con ids nuevos. No copia partidas. El original no cambia. Una partida activa del original no impide duplicar. Un cuestionario ajeno responde **404** `QUIZ_NOT_FOUND`. Si la copia no puede completarse, no queda un cuestionario parcial.
+
 ## 4. Preguntas
 
 El cuerpo de alta y el de edición son el mismo. No lleva `id` ni `position`. Las filas que el formulario dejó vacías no se envían: un `text` vacío es un error, el servidor no descarta la opción.
@@ -429,7 +433,6 @@ El cliente vuelve a pedir `GET /api/quizzes/:quizId` para ver las posiciones nue
 Estas historias no tienen ruta aquí. El editor de corte 1 no las llama.
 
 - HU-2.6, portada. `coverUrl` llega en `null`.
-- HU-2.7, duplicar un cuestionario.
 - HU-2.8, vista previa. No crea sala ni puntaje.
 - HU-2.9, rechazar edición o borrado mientras hay una partida abierta de ese cuestionario.
 - HU-3.4, reordenar preguntas. En este corte el orden lo fijan el alta (al final) y el borrado (compacta).

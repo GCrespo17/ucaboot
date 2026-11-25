@@ -44,6 +44,12 @@ export class QuizService {
     if (!deleted) throw new AppError("QUIZ_NOT_FOUND", "Quiz not found");
   }
 
+  async duplicate(hostId: string, quizId: string): Promise<StoredQuiz> {
+    const quiz = await this.deps.catalog.duplicateQuiz(quizId, hostId, this.now());
+    if (!quiz) throw new AppError("QUIZ_NOT_FOUND", "Quiz not found");
+    return quiz;
+  }
+
   async addQuestion(hostId: string, quizId: string, input: QuestionWrite): Promise<StoredQuestion> {
     return this.questionResult(await this.deps.catalog.insertQuestion(quizId, hostId, input, this.now()));
   }
