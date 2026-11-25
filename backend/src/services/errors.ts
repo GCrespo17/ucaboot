@@ -18,6 +18,7 @@ export type ErrorCode =
   | "RATE_LIMITED"
   | "GAME_NOT_RECORDABLE"
   | "QUESTION_SET_CHANGED"
+  | "QUIZ_IN_GAME"
   | "INTERNAL";
 
 export class AppError extends Error {

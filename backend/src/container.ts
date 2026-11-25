@@ -40,7 +40,7 @@ export function buildContainer(io: GameServer) {
   const notifier: GameNotifier = new SocketNotifier(io);
 
   const roomService = new RoomService({ quizzes, rooms, lock, clock, ids });
-  const quizService = new QuizService({ catalog: quizStore, clock });
+  const quizService = new QuizService({ catalog: quizStore, clock, rooms, lock });
   const playerService = new PlayerService({ rooms, lock, clock, ids, notifier });
   const gameService = new GameService({ rooms, lock, clock, scheduler, notifier });
   const gameHistoryService = new GameHistoryService({ history: new DrizzleGameHistory() });
