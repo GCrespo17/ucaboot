@@ -114,12 +114,17 @@ El lobby muestra el PIN grande, la dirección para unirse y los apodos en orden 
 
 ## Partida del anfitrión
 
-"Comenzar" (HU-4.6) emite `host:start` y la misma ruta `/anfitrion/sala/:pin` pasa a la partida: la pantalla depende de la fase de la sala (`lobby`, `question`, `reveal`), así una recarga vuelve a la fase en curso.
+"Comenzar" (HU-4.6) emite `host:start` y la misma ruta `/anfitrion/sala/:pin` pasa a la partida: la pantalla depende de la fase de la sala (`lobby`, `question`, `reveal`, `final`), así una recarga vuelve a la fase en curso.
 
 - Sin participantes el botón queda deshabilitado. Si el servidor rechaza el comienzo (`NO_PLAYERS`, `NO_VALID_QUESTIONS`) o no responde en 10 s, la sala sigue en el lobby y se puede reintentar. Si el comienzo sí llegó al servidor, `question:opened` actualiza la pantalla igual.
 - La pregunta se proyecta con `ui/game/QuestionProjection` (la misma de la vista previa) sin marcar correctas, con el conteo "n de m respondieron" de `question:answerCount` (HU-6.1).
 - El temporizador cuenta hasta `closesAt` con la hora del servidor: `useHostRoom` guarda la diferencia entre `serverNow` y el reloj local (`model/rooms/game.ts`), así todos ven el mismo tiempo y una recarga no lo reinicia (HU-6.3).
-- La recepción la cierra el servidor (por tiempo o porque respondieron todos) con `question:revealed`. Por ahora la pantalla indica el cierre y cuántos respondieron; la revelación completa, "Siguiente" y el podio vienen con HU-7.1, 7.4 y 8.1.
+- La recepción la cierra el servidor (por tiempo o porque respondieron todos) con `question:revealed`.
+- **Revelación (HU-7.1):** la misma `QuestionProjection`, sin temporizador y con las correctas marcadas, más `ui/game/RevealChart`: una barra por opción con cuántos la eligieron (el alto es relativo a la más elegida) y cuántos no respondieron.
+- **Siguiente (HU-7.4):** emite `host:next` con el índice de la pregunta revelada, así un doble clic no salta preguntas. En la última dice "Ver resultados". Si el servidor no responde en 10 s, la revelación sigue y se puede reintentar.
+- **Final (HU-8.1 y 8.2):** con `game:finished`, `ui/game/Podium` muestra a las tres primeras personas en escalones animados (sin animación si el sistema pide reducir movimiento). "Ver tabla completa" lista a todos con puesto, puntaje, aciertos y tiempo promedio ("—" si no respondió nada). El orden, los puestos (los empates los comparten) y los totales los calcula el servidor.
+
+`start` y `next` comparten `hostCommand` en `useHostRoom`: si los eventos ya llevaron la sala más adelante, una respuesta atrasada no la hace retroceder.
 
 ## Scripts
 
