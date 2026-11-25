@@ -40,27 +40,9 @@
   font-variant-numeric: tabular-nums;
 }
 
-.closed {
+.actions {
   display: flex;
-  flex-direction: column;
+  flex-wrap: wrap;
   align-items: center;
   gap: 0.75rem;
-  padding: 2rem 1rem;
-  border-radius: var(--radius);
-  background: var(--color-surface);
-  box-shadow: var(--shadow);
-  text-align: center;
-}
-
-.closedTitle {
-  margin: 0;
-  color: var(--color-brand);
-  font-size: clamp(1.5rem, 3vw, 2rem);
-}
-
-.closedText {
-  margin: 0;
-  color: var(--color-text);
-  font-size: 1.25rem;
-  overflow-wrap: anywhere;
 }

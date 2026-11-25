@@ -1,13 +1,21 @@
-import { QuestionProjection } from "../../ui/game/QuestionProjection";
+import type { CommandResult } from "../../model/rooms/useHostRoom";
 import type { HostRoomSnapshot } from "../../model/types/room";
+import { Button } from "../../ui/Button";
+import { FormMessage } from "../../ui/FormMessage";
+import { QuestionProjection } from "../../ui/game/QuestionProjection";
+import { RevealChart } from "../../ui/game/RevealChart";
 import styles from "./HostGame.module.css";
 import { useHostGameViewModel } from "./useHostGameViewModel";
 
-type HostGameViewProps = { room: HostRoomSnapshot; clockOffset: number };
+type HostGameViewProps = {
+  room: HostRoomSnapshot;
+  clockOffset: number;
+  next: (questionIndex: number) => Promise<CommandResult>;
+};
 
 // Partida proyectada en la pantalla del anfitrión, después de comenzar (HU-4.6)
-export function HostGameView({ room, clockOffset }: HostGameViewProps) {
-  const vm = useHostGameViewModel(room, clockOffset);
+export function HostGameView({ room, clockOffset, next }: HostGameViewProps) {
+  const vm = useHostGameViewModel(room, clockOffset, next);
 
   return (
     <section className={styles.game} aria-labelledby="partida-titulo">
@@ -23,7 +31,17 @@ export function HostGameView({ room, clockOffset }: HostGameViewProps) {
             {vm.question.answeredLabel}
           </p>
         )}
+        {vm.reveal && (
+          <div className={styles.actions}>
+            <p className={styles.answered}>{vm.reveal.answeredLabel}</p>
+            <Button onClick={vm.advance} disabled={vm.advancing}>
+              {vm.nextLabel}
+            </Button>
+          </div>
+        )}
       </header>
+
+      {vm.nextError && <FormMessage>{vm.nextError}</FormMessage>}
 
       {vm.question && (
         <QuestionProjection
@@ -37,12 +55,16 @@ export function HostGameView({ room, clockOffset }: HostGameViewProps) {
         />
       )}
 
-      {vm.closed && (
-        <div className={styles.closed} role="status">
-          <h2 className={styles.closedTitle}>Se cerró la recepción de respuestas</h2>
-          <p className={styles.closedText}>{vm.closed.text}</p>
-          <p className={styles.answered}>{vm.closed.answeredLabel}</p>
-        </div>
+      {vm.reveal && (
+        <QuestionProjection
+          text={vm.reveal.text}
+          imageUrl={vm.reveal.imageUrl}
+          imageFailed={vm.imageFailed}
+          onImageError={vm.markImageFailed}
+          options={vm.reveal.options}
+          revealCorrect
+          chart={<RevealChart bars={vm.reveal.bars} noAnswerLabel={vm.reveal.noAnswerLabel} />}
+        />
       )}
     </section>
   );
