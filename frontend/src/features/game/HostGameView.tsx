@@ -5,6 +5,7 @@ import { FormMessage } from "../../ui/FormMessage";
 import { QuestionProjection } from "../../ui/game/QuestionProjection";
 import { RevealChart } from "../../ui/game/RevealChart";
 import styles from "./HostGame.module.css";
+import { HostFinalView } from "./HostFinalView";
 import { useHostGameViewModel } from "./useHostGameViewModel";
 
 type HostGameViewProps = {
@@ -16,6 +17,8 @@ type HostGameViewProps = {
 // Partida proyectada en la pantalla del anfitrión, después de comenzar (HU-4.6)
 export function HostGameView({ room, clockOffset, next }: HostGameViewProps) {
   const vm = useHostGameViewModel(room, clockOffset, next);
+
+  if (room.final) return <HostFinalView final={room.final} quizTitle={room.quiz.title} />;
 
   return (
     <section className={styles.game} aria-labelledby="partida-titulo">
