@@ -415,6 +415,21 @@ El cliente vuelve a pedir `GET /api/quizzes/:quizId` para ver las posiciones nue
 { "error": "QUESTION_NOT_FOUND", "message": "Question not found" }
 ```
 
+### `PUT /api/quizzes/:quizId/questions/order` (HU-3.4)
+
+```jsonc
+// petición
+{ "questionIds": ["id-de-la-segunda", "id-de-la-primera"] }
+
+// 200: QuizDetail con las preguntas en ese orden y position 0..n-1
+```
+
+`questionIds` tiene que ser exactamente las preguntas actuales, sin faltantes ni repetidas. Si no, **409** `QUESTION_SET_CHANGED` y el orden guardado no cambia. Si el orden pedido es el que ya está, responde **200** y no mueve `updatedAt`. Reordenar no cambia textos, opciones, tiempos, puntajes ni imágenes. Un cuestionario ajeno responde **404**.
+
+```json
+{ "error": "QUESTION_SET_CHANGED", "message": "Question set changed" }
+```
+
 ## 5. Códigos de error
 
 | Código | Estado | Dónde |
@@ -424,6 +439,7 @@ El cliente vuelve a pedir `GET /api/quizzes/:quizId` para ver las posiciones nue
 | `QUIZ_NOT_FOUND` | 404 | El cuestionario no existe o es de otra cuenta |
 | `QUESTION_NOT_FOUND` | 404 | La pregunta no pertenece a un cuestionario de esta cuenta |
 | `GAME_NOT_FOUND` | 404 | La partida no existe o es de otra cuenta |
+| `QUESTION_SET_CHANGED` | 409 | El orden no es una permutación de las preguntas actuales |
 | `INTERNAL` | 500 | Fallo no previsto. Los datos guardados no cambian |
 
 `QUESTION_NOT_FOUND` todavía no está en `backend/src/services/errors.ts`. Se agrega en el PR de las rutas.
@@ -435,7 +451,6 @@ Estas historias no tienen ruta aquí. El editor de corte 1 no las llama.
 - HU-2.6, portada. `coverUrl` llega en `null`.
 - HU-2.8, vista previa. No crea sala ni puntaje.
 - HU-2.9, rechazar edición o borrado mientras hay una partida abierta de ese cuestionario.
-- HU-3.4, reordenar preguntas. En este corte el orden lo fijan el alta (al final) y el borrado (compacta).
 - HU-3.5, imagen de la pregunta. `imageUrl` llega en `null`.
 - HU-8.4, guardar la partida. No tiene ruta: lo escribe el backend al cerrar la sala (ver [contrato de eventos](contrato-eventos.md), sección 8). El historial se consulta en HU-9.1.
 

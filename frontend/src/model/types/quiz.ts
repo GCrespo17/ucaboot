@@ -48,6 +48,11 @@ export interface QuizInput {
 }
 
 // Cuerpo de POST y PATCH de una pregunta: sin id ni position, las opciones en orden
+// Cuerpo de PUT /api/quizzes/:quizId/questions/order
+export interface QuestionOrder {
+  questionIds: string[];
+}
+
 export interface QuestionInput {
   text: string;
   timeLimitSeconds: TimeLimit;

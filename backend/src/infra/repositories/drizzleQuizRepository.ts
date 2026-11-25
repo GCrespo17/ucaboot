@@ -147,6 +147,37 @@ export class DrizzleQuizRepository implements QuizCatalog, QuizRepository {
     });
   }
 
+  reorderQuestions(
+    quizId: string,
+    hostId: string,
+    questionIds: string[],
+    at: Date,
+  ): Promise<StoredQuiz | "quiz-missing" | "set-changed"> {
+    return this.database.transaction(async (tx) => {
+      if (!(await ownedQuiz(tx, quizId, hostId))) return "quiz-missing";
+      const rows = await tx
+        .select({ id: questions.id, position: questions.position })
+        .from(questions)
+        .where(eq(questions.quizId, quizId))
+        .orderBy(asc(questions.position));
+      if (!sameIdSet(rows.map((row) => row.id), questionIds)) return "set-changed";
+      if (rows.every((row, index) => row.id === questionIds[index])) {
+        const current = await loadQuiz(tx, quizId, hostId);
+        return current ?? "quiz-missing";
+      }
+      for (const [index, id] of questionIds.entries()) {
+        await tx.update(questions).set({ position: -(index + 1) }).where(eq(questions.id, id));
+      }
+      for (const [index, id] of questionIds.entries()) {
+        await tx.update(questions).set({ position: index }).where(eq(questions.id, id));
+      }
+      await touchQuiz(tx, quizId, at);
+      const quiz = await loadQuiz(tx, quizId, hostId);
+      if (!quiz) return "quiz-missing";
+      return quiz;
+    });
+  }
+
   insertQuestion(quizId: string, hostId: string, input: QuestionWrite, at: Date): Promise<QuestionLookup> {
     return this.database.transaction(async (tx) => {
       const quiz = await ownedQuiz(tx, quizId, hostId);
@@ -313,6 +344,18 @@ function toStoredQuestion(
     position: question.position,
     options: storedOptions,
   };
+}
+
+function sameIdSet(current: string[], next: string[]): boolean {
+  if (current.length !== next.length) return false;
+  const counts = new Map<string, number>();
+  for (const id of current) counts.set(id, (counts.get(id) ?? 0) + 1);
+  for (const id of next) {
+    const left = counts.get(id) ?? 0;
+    if (left === 0) return false;
+    counts.set(id, left - 1);
+  }
+  return true;
 }
 
 function asTimeLimit(value: number): TimeLimit {

@@ -17,6 +17,7 @@ export type ErrorCode =
   | "PAYLOAD_TOO_LARGE"
   | "RATE_LIMITED"
   | "GAME_NOT_RECORDABLE"
+  | "QUESTION_SET_CHANGED"
   | "INTERNAL";
 
 export class AppError extends Error {

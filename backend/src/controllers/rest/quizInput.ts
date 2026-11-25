@@ -94,6 +94,14 @@ function finishText(rawTitle: string, rawDescription: string | null): ParseResul
   return { ok: true, value: { title, description } };
 }
 
+const questionOrderSchema = z.object({ questionIds: z.array(z.string()) });
+
+export function parseQuestionOrder(body: unknown): ParseResult<{ questionIds: string[] }> {
+  const parsed = questionOrderSchema.safeParse(body);
+  if (!parsed.success) return { ok: false, fields: { questionIds: "INVALID" } };
+  return { ok: true, value: parsed.data };
+}
+
 function typeFields(body: unknown, issues: readonly { path: PropertyKey[] }[]): FieldErrors {
   const fields: FieldErrors = {};
   for (const issue of issues) {
