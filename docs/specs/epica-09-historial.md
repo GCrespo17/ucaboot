@@ -79,3 +79,41 @@ El anfitrión consulta las partidas que ya quedaron guardadas. Los registros nac
 - **FA4. Sesión cerrada o fallo al cargar.** El sistema no muestra datos parciales de otra partida y permite volver a la lista o reintentar.
 
 **Postcondiciones:** El anfitrión ve el detalle persistido. El registro permanece igual.
+
+## HU-9.3 Exportar una partida a CSV
+
+**Prioridad:** Corte 2
+
+**Actor:** Anfitrión
+
+**Historia:** Yo como anfitrión, quiero descargar el resultado de una partida en CSV, para llevarlo a una hoja de cálculo o a un registro de calificaciones.
+
+**Precondiciones:**
+
+- Hay una sesión de anfitrión activa.
+- La partida terminada pertenece a esa cuenta y fue guardada por HU-8.4.
+
+**Flujo base:**
+
+1. El anfitrión elige exportar una partida del historial.
+2. El sistema arma un archivo CSV con una fila por participante de la lista guardada.
+3. Cada fila trae puesto, apodo, puntaje, aciertos, cantidad de respuestas aceptadas y tiempo promedio en segundos.
+4. El navegador descarga el archivo. El registro no cambia.
+
+**Criterios de aceptación:**
+
+- El archivo es `text/csv` en UTF-8, con marca de orden de bytes, para que una hoja de cálculo muestre bien los acentos.
+- El nombre del archivo es `ucaboot-` seguido de la fecha de cierre en UTC y `.csv`.
+- El orden de las filas es el de la tabla guardada.
+- El tiempo promedio usa un decimal. Si el participante no tuvo respuestas aceptadas, esa celda queda vacía.
+- Un apodo con coma, comilla o salto de línea se escapa. Un apodo que empieza por `=`, `+`, `-` o `@` no se interpreta como fórmula.
+- Una partida de otra cuenta responde como si no existiera.
+- La descarga no modifica el registro.
+
+**Flujos alternos:**
+
+- **FA1. Partida inexistente o ajena.** El sistema no entrega un archivo y responde como en HU-9.2 FA1.
+- **FA2. Participante sin respuestas aceptadas.** Puntaje 0, aciertos 0 y tiempo promedio vacío.
+- **FA3. Sesión cerrada.** El sistema no entrega el archivo y pide iniciar sesión.
+
+**Postcondiciones:** El anfitrión tiene el archivo. El registro permanece igual.
