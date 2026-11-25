@@ -7,6 +7,7 @@ import { FormMessage } from "../../ui/FormMessage";
 import { LinkButton } from "../../ui/LinkButton";
 import styles from "./Library.module.css";
 import { QuestionFormDialog } from "./QuestionFormDialog";
+import { QuestionOrderList } from "./QuestionOrderList";
 import { QuizFormDialog } from "./QuizFormDialog";
 import { StartGameDialog } from "./StartGameDialog";
 import { useQuizDetailViewModel } from "./useQuizDetailViewModel";
@@ -94,7 +95,16 @@ function QuizDetail({ quizId }: { quizId: string }) {
           <section aria-labelledby="preguntas-titulo" className={styles.questions}>
             <div className={styles.sectionHeader}>
               <h2 id="preguntas-titulo">Preguntas</h2>
-              <Button onClick={vm.openNewQuestion}>Agregar pregunta</Button>
+              {!vm.order.ordering && (
+                <div className={styles.cardActions}>
+                  {vm.order.available && (
+                    <Button variant="secondary" onClick={vm.startOrdering}>
+                      Ordenar preguntas
+                    </Button>
+                  )}
+                  <Button onClick={vm.openNewQuestion}>Agregar pregunta</Button>
+                </div>
+              )}
             </div>
 
             {vm.questionNotice && (
@@ -106,7 +116,9 @@ function QuizDetail({ quizId }: { quizId: string }) {
               </div>
             )}
 
-            {vm.details.questions.length === 0 ? (
+            {vm.order.ordering ? (
+              <QuestionOrderList order={vm.order} />
+            ) : vm.details.questions.length === 0 ? (
               <p className={styles.muted}>Este cuestionario todavía no tiene preguntas.</p>
             ) : (
               <ol className={styles.questionList}>

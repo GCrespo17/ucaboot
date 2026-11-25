@@ -7,6 +7,7 @@ import type { Question } from "../../model/types/quiz";
 import type { LibraryNotice } from "./useLibraryViewModel";
 import { formatUpdatedAt, questionCountLabel } from "./formatUpdatedAt";
 import { useDuplicate } from "./useDuplicate";
+import { useQuestionOrder } from "./useQuestionOrder";
 import { useStartGame } from "./useStartGame";
 
 const LIBRARY = "/anfitrion/cuestionarios";
@@ -17,7 +18,7 @@ type QuestionEditor = "nueva" | Question | null;
 
 // HU-2.3 ver el detalle, HU-2.4 editar sus datos y HU-2.5 eliminarlo.
 // HU-3.1 a HU-3.3 agregar, editar y eliminar sus preguntas. HU-4.1 iniciar partida. HU-2.8 vista previa.
-// HU-2.7 duplicar.
+// HU-2.7 duplicar y HU-3.4 reordenar las preguntas.
 export function useQuizDetailViewModel(quizId: string) {
   const navigate = useNavigate();
   const location = useLocation();
@@ -35,6 +36,11 @@ export function useQuizDetailViewModel(quizId: string) {
   const [questionToDelete, setQuestionToDelete] = useState<Question | null>(null);
   const [deleteQuestionError, setDeleteQuestionError] = useState<string | null>(null);
   const [questionNotice, setQuestionNotice] = useState<string | null>(null);
+  const order = useQuestionOrder(quizId, quiz.data?.questions ?? [], () => {
+    // HU-3.4 FA5: el conjunto cambió en otra sesión; se recarga y se pide ordenar de nuevo
+    setQuestionNotice("Las preguntas cambiaron mientras las ordenabas. La lista está actualizada; ordénala de nuevo.");
+    void quiz.refetch();
+  });
 
   // FA1: inexistente o de otra cuenta. No se muestra nada y se vuelve a la lista con aviso.
   const notFound = isApiError(quiz.error, "QUIZ_NOT_FOUND");
@@ -151,6 +157,12 @@ export function useQuizDetailViewModel(quizId: string) {
 
     notice,
     dismissNotice: () => setNotice(null),
+
+    order,
+    startOrdering: () => {
+      setQuestionNotice(null);
+      order.start();
+    },
 
     // HU-2.7: disponible aunque el cuestionario esté en una partida
     duplicate: () => duplicate.duplicate(quizId),

@@ -304,3 +304,52 @@
   margin-top: 0;
   padding-top: 0;
 }
+
+/* Ordenar preguntas (HU-3.4) */
+.orderPanel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.orderList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.orderItem {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  box-shadow: var(--shadow);
+}
+
+.orderText {
+  flex: 1;
+  min-width: 10rem;
+  overflow-wrap: anywhere;
+  font-weight: 600;
+}
+
+.orderActions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.orderSelect {
+  padding: 0.5rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
+}
