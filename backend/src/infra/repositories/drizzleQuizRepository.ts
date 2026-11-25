@@ -9,6 +9,7 @@ import type {
   StoredQuestion,
   StoredQuiz,
 } from "../../domain/ports/QuizCatalog.js";
+import { copyTitle } from "../../domain/quiz/copyTitle.js";
 import { TIME_LIMITS, type PlayableQuiz, type TimeLimit } from "../../domain/quiz/playableQuiz.js";
 import { db } from "../db/client.js";
 import { options, questions, quizzes } from "../db/schema.js";
@@ -100,6 +101,50 @@ export class DrizzleQuizRepository implements QuizCatalog, QuizRepository {
       .where(and(eq(quizzes.id, quizId), eq(quizzes.hostId, hostId)))
       .returning({ id: quizzes.id });
     return deleted.length > 0;
+  }
+
+  duplicateQuiz(quizId: string, hostId: string, at: Date): Promise<StoredQuiz | null> {
+    return this.database.transaction(async (tx) => {
+      const source = await loadQuiz(tx, quizId, hostId);
+      if (!source) return null;
+      const [created] = await tx
+        .insert(quizzes)
+        .values({
+          hostId,
+          title: copyTitle(source.title),
+          description: source.description,
+          coverUrl: source.coverUrl,
+          createdAt: at,
+          updatedAt: at,
+        })
+        .returning();
+      if (!created) throw new Error("insert quiz returned no row");
+      for (const question of source.questions) {
+        const [copied] = await tx
+          .insert(questions)
+          .values({
+            quizId: created.id,
+            position: question.position,
+            text: question.text,
+            imageUrl: question.imageUrl,
+            timeLimitSeconds: question.timeLimitSeconds,
+            basePoints: question.basePoints,
+          })
+          .returning();
+        if (!copied) throw new Error("insert question returned no row");
+        if (question.options.length > 0) {
+          await tx.insert(options).values(
+            question.options.map((option) => ({
+              questionId: copied.id,
+              position: option.position,
+              text: option.text,
+              isCorrect: option.isCorrect,
+            })),
+          );
+        }
+      }
+      return loadQuiz(tx, created.id, hostId);
+    });
   }
 
   insertQuestion(quizId: string, hostId: string, input: QuestionWrite, at: Date): Promise<QuestionLookup> {

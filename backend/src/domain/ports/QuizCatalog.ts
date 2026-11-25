@@ -59,6 +59,7 @@ export interface QuizCatalog {
     input: { title: string; description: string | null; at: Date },
   ): Promise<StoredQuiz | null>;
   deleteQuiz(quizId: string, hostId: string): Promise<boolean>;
+  duplicateQuiz(quizId: string, hostId: string, at: Date): Promise<StoredQuiz | null>;
   insertQuestion(quizId: string, hostId: string, input: QuestionWrite, at: Date): Promise<QuestionLookup>;
   replaceQuestion(
     quizId: string,

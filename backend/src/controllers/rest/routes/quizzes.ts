@@ -35,6 +35,11 @@ export function quizzesRouter(container: Container) {
     res.json(toQuizDetail(quiz));
   });
 
+  router.post("/:quizId/duplicate", async (req, res) => {
+    const quiz = await container.quizService.duplicate(hostId(res), ownedQuizId(req.params.quizId));
+    res.status(201).json(toQuizDetail(quiz));
+  });
+
   router.delete("/:quizId", async (req, res) => {
     await container.quizService.delete(hostId(res), ownedQuizId(req.params.quizId));
     res.status(204).send();
