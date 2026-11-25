@@ -486,6 +486,37 @@ describe("QuizService", () => {
     expect(await codeOf(service.setQuestionImage(HOST, created.id, added.id, png))).toBe("QUESTION_NOT_FOUND");
   });
 
+  it("un anfitrión ajeno no ve, no edita, no borra, no duplica, no reordena ni cambia archivos", async () => {
+    const { service, storage } = setup();
+    const created = await service.create(HOST, { title: "Capitales", description: "Geo" });
+    const added = await service.addQuestion(HOST, created.id, question("Primera"));
+    const png = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 0]);
+    await service.setCover(HOST, created.id, png);
+    await service.setQuestionImage(HOST, created.id, added.id, png);
+    const before = await service.get(HOST, created.id);
+    const filesBefore = storage.files.size;
+
+    expect(await service.list(OTHER)).toEqual([]);
+    const forbidden = [
+      () => service.get(OTHER, created.id),
+      () => service.update(OTHER, created.id, { title: "Ajeno", description: null }),
+      () => service.delete(OTHER, created.id),
+      () => service.duplicate(OTHER, created.id),
+      () => service.reorder(OTHER, created.id, [added.id]),
+      () => service.addQuestion(OTHER, created.id, question("Ajena")),
+      () => service.updateQuestion(OTHER, created.id, added.id, question("Ajena")),
+      () => service.deleteQuestion(OTHER, created.id, added.id),
+      () => service.setCover(OTHER, created.id, png),
+      () => service.clearCover(OTHER, created.id),
+      () => service.setQuestionImage(OTHER, created.id, added.id, png),
+      () => service.clearQuestionImage(OTHER, created.id, added.id),
+    ];
+    for (const attempt of forbidden) expect(await codeOf(attempt())).toBe("QUIZ_NOT_FOUND");
+
+    expect(await service.get(HOST, created.id)).toEqual(before);
+    expect(storage.files.size).toBe(filesBefore);
+  });
+
   it("responde pregunta inexistente cuando el cuestionario sí es propio", async () => {
     const { service } = setup();
     const created = await service.create(HOST, { title: "Capitales", description: null });
