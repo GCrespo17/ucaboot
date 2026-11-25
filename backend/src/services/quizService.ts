@@ -75,13 +75,26 @@ export class QuizService {
   async duplicate(hostId: string, quizId: string): Promise<StoredQuiz> {
     const quiz = await this.deps.catalog.duplicateQuiz(quizId, hostId, this.now());
     if (!quiz) throw new AppError("QUIZ_NOT_FOUND", "Quiz not found");
-    if (!quiz.coverUrl) return quiz;
+    if (!quiz.coverUrl && quiz.questions.every((question) => !question.imageUrl)) return quiz;
+    const copiedFiles: string[] = [];
     try {
-      const url = await this.deps.storage.copy(quiz.coverUrl);
-      return (await this.deps.catalog.setCoverUrl(quiz.id, hostId, url, this.now())) ?? quiz;
+      if (quiz.coverUrl) {
+        const url = await this.deps.storage.copy(quiz.coverUrl);
+        copiedFiles.push(url);
+        await this.deps.catalog.setCoverUrl(quiz.id, hostId, url, this.now());
+      }
+      for (const question of quiz.questions) {
+        if (!question.imageUrl) continue;
+        const url = await this.deps.storage.copy(question.imageUrl);
+        copiedFiles.push(url);
+        const saved = await this.deps.catalog.setQuestionImage(quiz.id, question.id, hostId, url, this.now());
+        if (saved === "quiz-missing" || saved === "question-missing") throw new Error("copy lost a question");
+      }
+      return await this.get(hostId, quiz.id);
     } catch (error) {
       await this.deps.catalog.deleteQuiz(quiz.id, hostId);
-      this.deps.logger.error("could not copy quiz cover", { error: String(error) });
+      for (const url of copiedFiles) await this.discard(url);
+      this.deps.logger.error("could not copy quiz files", { error: String(error) });
       throw new AppError("INTERNAL", "Could not duplicate the quiz");
     }
   }
@@ -137,9 +150,47 @@ export class QuizService {
 
   deleteQuestion(hostId: string, quizId: string, questionId: string): Promise<void> {
     return this.guarded(hostId, quizId, async () => {
+      const quiz = await this.get(hostId, quizId);
+      const imageUrl = quiz.questions.find((question) => question.id === questionId)?.imageUrl ?? null;
       const result = await this.deps.catalog.deleteQuestion(quizId, questionId, hostId, this.now());
       if (result === "quiz-missing") throw new AppError("QUIZ_NOT_FOUND", "Quiz not found");
       if (result === "question-missing") throw new AppError("QUESTION_NOT_FOUND", "Question not found");
+      await this.discard(imageUrl);
+    });
+  }
+
+  setQuestionImage(hostId: string, quizId: string, questionId: string, bytes: Buffer): Promise<StoredQuestion> {
+    const type = bytes.length > 0 && bytes.length <= MAX_IMAGE_BYTES ? detectImageType(bytes) : null;
+    if (!type) return Promise.reject(new AppError("UNSUPPORTED_MEDIA_TYPE", "Unsupported image"));
+    return this.guarded(hostId, quizId, async () => {
+      const quiz = await this.get(hostId, quizId);
+      const current = quiz.questions.find((question) => question.id === questionId);
+      if (!current) throw new AppError("QUESTION_NOT_FOUND", "Question not found");
+      const url = await this.deps.storage.put(bytes, type);
+      const saved = await this.deps.catalog.setQuestionImage(quizId, questionId, hostId, url, this.now());
+      if (saved === "quiz-missing") {
+        await this.discard(url);
+        throw new AppError("QUIZ_NOT_FOUND", "Quiz not found");
+      }
+      if (saved === "question-missing") {
+        await this.discard(url);
+        throw new AppError("QUESTION_NOT_FOUND", "Question not found");
+      }
+      if (current.imageUrl && current.imageUrl !== url) await this.discard(current.imageUrl);
+      return saved;
+    });
+  }
+
+  clearQuestionImage(hostId: string, quizId: string, questionId: string): Promise<StoredQuestion> {
+    return this.guarded(hostId, quizId, async () => {
+      const quiz = await this.get(hostId, quizId);
+      const current = quiz.questions.find((question) => question.id === questionId);
+      if (!current) throw new AppError("QUESTION_NOT_FOUND", "Question not found");
+      const saved = await this.deps.catalog.setQuestionImage(quizId, questionId, hostId, null, this.now());
+      if (saved === "quiz-missing") throw new AppError("QUIZ_NOT_FOUND", "Quiz not found");
+      if (saved === "question-missing") throw new AppError("QUESTION_NOT_FOUND", "Question not found");
+      await this.discard(current.imageUrl);
+      return saved;
     });
   }
 

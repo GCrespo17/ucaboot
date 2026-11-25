@@ -61,6 +61,13 @@ export interface QuizCatalog {
   deleteQuiz(quizId: string, hostId: string): Promise<boolean>;
   duplicateQuiz(quizId: string, hostId: string, at: Date): Promise<StoredQuiz | null>;
   setCoverUrl(quizId: string, hostId: string, coverUrl: string | null, at: Date): Promise<StoredQuiz | null>;
+  setQuestionImage(
+    quizId: string,
+    questionId: string,
+    hostId: string,
+    imageUrl: string | null,
+    at: Date,
+  ): Promise<QuestionLookup>;
   reorderQuestions(
     quizId: string,
     hostId: string,

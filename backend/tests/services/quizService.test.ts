@@ -112,6 +112,22 @@ class MemoryCatalog implements QuizCatalog {
     return entry.quiz;
   }
 
+  async setQuestionImage(
+    quizId: string,
+    questionId: string,
+    hostId: string,
+    imageUrl: string | null,
+    at: Date,
+  ): Promise<QuestionLookup> {
+    const entry = this.entry(quizId, hostId);
+    if (!entry) return "quiz-missing";
+    const question = entry.quiz.questions.find((item) => item.id === questionId);
+    if (!question) return "question-missing";
+    question.imageUrl = imageUrl;
+    entry.quiz.updatedAt = at;
+    return question;
+  }
+
   async reorderQuestions(
     quizId: string,
     hostId: string,
@@ -163,6 +179,7 @@ class MemoryCatalog implements QuizCatalog {
     const current = entry.quiz.questions[index];
     if (!current) return "question-missing";
     const replaced = this.makeQuestion(input, current.position, current.id);
+    replaced.imageUrl = current.imageUrl;
     entry.quiz.questions[index] = replaced;
     entry.quiz.updatedAt = at;
     return replaced;
@@ -447,6 +464,26 @@ describe("QuizService", () => {
     expect(storage.files.has(replaced.coverUrl ?? "")).toBe(false);
     expect(await codeOf(service.setCover(HOST, created.id, Buffer.from("not an image")))).toBe("UNSUPPORTED_MEDIA_TYPE");
     expect(await codeOf(service.setCover(OTHER, created.id, png))).toBe("QUIZ_NOT_FOUND");
+  });
+
+  it("adjunta una imagen a la pregunta, la borra con la pregunta y la copia al duplicar", async () => {
+    const { service, storage } = setup();
+    const created = await service.create(HOST, { title: "Capitales", description: null });
+    const added = await service.addQuestion(HOST, created.id, question("Primera"));
+    const png = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 0]);
+
+    const withImage = await service.setQuestionImage(HOST, created.id, added.id, png);
+    expect(withImage.imageUrl).toMatch(/^\/api\/files\//);
+    const edited = await service.updateQuestion(HOST, created.id, added.id, question("Primera corregida"));
+    expect(edited.imageUrl).toBe(withImage.imageUrl);
+
+    const copy = await service.duplicate(HOST, created.id);
+    expect(copy.questions[0]?.imageUrl).not.toBe(withImage.imageUrl);
+    expect(storage.files.has(withImage.imageUrl ?? "")).toBe(true);
+
+    await service.deleteQuestion(HOST, created.id, added.id);
+    expect(storage.files.has(withImage.imageUrl ?? "")).toBe(false);
+    expect(await codeOf(service.setQuestionImage(HOST, created.id, added.id, png))).toBe("QUESTION_NOT_FOUND");
   });
 
   it("responde pregunta inexistente cuando el cuestionario sí es propio", async () => {

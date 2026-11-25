@@ -65,6 +65,26 @@ export function quizzesRouter(container: Container) {
     res.json(toQuizDetail(quiz));
   });
 
+  router.put("/:quizId/questions/:questionId/image", imageBody, async (req, res) => {
+    const bytes = Buffer.isBuffer(req.body) ? req.body : Buffer.alloc(0);
+    const question = await container.quizService.setQuestionImage(
+      hostId(res),
+      ownedQuizId(req.params.quizId),
+      await ownedQuestionId(container, hostId(res), req.params.quizId, req.params.questionId),
+      bytes,
+    );
+    res.json(toQuestion(question));
+  });
+
+  router.delete("/:quizId/questions/:questionId/image", async (req, res) => {
+    const question = await container.quizService.clearQuestionImage(
+      hostId(res),
+      ownedQuizId(req.params.quizId),
+      await ownedQuestionId(container, hostId(res), req.params.quizId, req.params.questionId),
+    );
+    res.json(toQuestion(question));
+  });
+
   router.post("/:quizId/questions", async (req, res) => {
     const body = parseQuestion(req.body);
     if (!body.ok) throw new AppError("VALIDATION_ERROR", "Invalid request", { fields: body.fields });
