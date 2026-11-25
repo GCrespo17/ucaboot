@@ -157,6 +157,39 @@ export class DrizzleQuizRepository implements QuizCatalog, QuizRepository {
     return loadQuiz(this.database, quizId, hostId);
   }
 
+  setQuestionImage(
+    quizId: string,
+    questionId: string,
+    hostId: string,
+    imageUrl: string | null,
+    at: Date,
+  ): Promise<QuestionLookup> {
+    return this.database.transaction(async (tx) => {
+      if (!(await ownedQuiz(tx, quizId, hostId))) return "quiz-missing";
+      const [updated] = await tx
+        .update(questions)
+        .set({ imageUrl })
+        .where(and(eq(questions.id, questionId), eq(questions.quizId, quizId)))
+        .returning();
+      if (!updated) return "question-missing";
+      await touchQuiz(tx, quizId, at);
+      const optionRows = await tx
+        .select()
+        .from(options)
+        .where(eq(options.questionId, questionId))
+        .orderBy(asc(options.position));
+      return toStoredQuestion(
+        updated,
+        optionRows.map((option) => ({
+          id: option.id,
+          text: option.text,
+          isCorrect: option.isCorrect,
+          position: option.position,
+        })),
+      );
+    });
+  }
+
   reorderQuestions(
     quizId: string,
     hostId: string,

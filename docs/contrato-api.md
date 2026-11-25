@@ -56,7 +56,7 @@ Los tipos de TypeScript entran con las rutas, duplicados en `backend/src/views/`
   { "error": "RATE_LIMITED", "message": "Too many requests", "retryAfterSeconds": 42 }
   ```
 
-- `coverUrl` e `imageUrl` viajan siempre y, en este corte, valen `null`. Subir imágenes es de corte 2.
+- `coverUrl` e `imageUrl` viajan siempre. Son `null` hasta que el anfitrión sube un archivo (HU-2.6 y HU-3.5).
 - `position` de una opción fija el color y la forma, igual que en el contrato de eventos: `0 → red/triangle`, `1 → blue/diamond`, `2 → yellow/circle`, `3 → green/square`.
 - En la partida, el contrato de eventos llama `timeLimit` a los segundos de la pregunta. Aquí el campo guardado se llama `timeLimitSeconds`.
 
@@ -86,7 +86,7 @@ interface QuizDetail {
 interface Question {
   id: string;
   text: string;
-  imageUrl: string | null; // null en este corte
+  imageUrl: string | null; // null hasta HU-3.5
   timeLimitSeconds: 5 | 10 | 15 | 20 | 30;
   basePoints: number;
   position: number; // 0 = primera de la partida
@@ -369,7 +369,7 @@ Agrega la pregunta al final del orden. O se guarda completa, con sus opciones, o
 
 ### `PATCH /api/quizzes/:quizId/questions/:questionId` (HU-3.2)
 
-Reemplaza el contenido de esa pregunta y conserva su `position`. El conjunto de opciones se sustituye entero: los `id` de las opciones de la respuesta son nuevos. El `id` de la pregunta no cambia. `imageUrl` sigue en `null` en este corte.
+Reemplaza el contenido de esa pregunta y conserva su `position`. El conjunto de opciones se sustituye entero: los `id` de las opciones de la respuesta son nuevos. El `id` de la pregunta no cambia. `imageUrl` no cambia en este reemplazo: se adjunta o se quita con `PUT` y `DELETE /api/quizzes/:quizId/questions/:questionId/image`, el mismo cuerpo binario y los mismos errores que la portada. Borrar la pregunta borra su archivo. Duplicar el cuestionario copia el archivo a un nombre nuevo.
 
 ```jsonc
 // 200: la misma forma que el 201 del alta, con el position que ya tenía
@@ -463,7 +463,6 @@ El cliente vuelve a pedir `GET /api/quizzes/:quizId` para ver las posiciones nue
 Estas historias no tienen ruta aquí. El editor de corte 1 no las llama.
 
 - HU-2.8, vista previa. No crea sala ni puntaje.
-- HU-3.5, imagen de la pregunta. `imageUrl` llega en `null`.
 - HU-8.4, guardar la partida. No tiene ruta: lo escribe el backend al cerrar la sala (ver [contrato de eventos](contrato-eventos.md), sección 8). El historial se consulta en HU-9.1.
 
 ## 7. De la biblioteca a la sala
