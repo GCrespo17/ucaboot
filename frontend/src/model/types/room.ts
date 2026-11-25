@@ -37,10 +37,12 @@ export interface RevealView {
 }
 
 export interface Standing {
-  rank: number;
+  rank: number; // los empates comparten puesto
   playerId: string;
   nickname: string;
   totalScore: number;
+  correctCount: number;
+  avgResponseSeconds: number | null; // null si no tuvo respuestas aceptadas
 }
 
 // game:finished (HU-8.1 y HU-8.2)

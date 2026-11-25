@@ -27,7 +27,7 @@ export function LobbyView() {
     return (
       <>
         {vm.reconnecting && <FormMessage tone="info">Se perdió la conexión. Reconectando…</FormMessage>}
-        <HostGameView room={vm.room} clockOffset={vm.clockOffset} />
+        <HostGameView room={vm.room} clockOffset={vm.clockOffset} next={vm.next} />
       </>
     );
   }

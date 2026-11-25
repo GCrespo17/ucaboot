@@ -1,12 +1,16 @@
 import { describe, expect, it } from "vitest";
-import type { HostQuestionView, HostRoomSnapshot, RevealView } from "../types/room";
+import type { FinalView, HostQuestionView, HostRoomSnapshot, RevealView, Standing } from "../types/room";
 import {
   ANSWER_INDEX,
   applyAnswerCount,
+  applyFinal,
   applyQuestionOpened,
   applyReveal,
+  barHeights,
   canStart,
   clockOffset,
+  nextFailureMessage,
+  podium,
   secondsLeft,
   startFailureMessage,
 } from "./game";
@@ -97,5 +101,51 @@ describe("temporizador con la hora del servidor (HU-6.3 FA5)", () => {
     expect(secondsLeft(10_500, 0, 0)).toBe(11);
     expect(secondsLeft(10_000, 0, 10_000)).toBe(0);
     expect(secondsLeft(10_000, 0, 99_000)).toBe(0);
+  });
+});
+
+function standing(rank: number, nickname: string, totalScore: number): Standing {
+  return { rank, playerId: nickname, nickname, totalScore, correctCount: 0, avgResponseSeconds: null };
+}
+
+describe("revelación y avance (HU-7.1 y HU-7.4)", () => {
+  it("las barras se miden contra la opción más elegida", () => {
+    expect(barHeights([2, 4, 1, 0])).toEqual([50, 100, 25, 0]);
+  });
+
+  it("FA1: si nadie respondió, todas las barras quedan en cero", () => {
+    expect(barHeights([0, 0])).toEqual([0, 0]);
+    expect(barHeights([])).toEqual([]);
+  });
+
+  it("FA5: si no se pudo avanzar, la revelación sigue y se puede reintentar", () => {
+    expect(nextFailureMessage("TIMEOUT")).toMatch(/vuelve a intentar/);
+    expect(nextFailureMessage("QUESTION_STILL_OPEN")).toMatch(/recibiendo respuestas/);
+  });
+});
+
+describe("final (HU-8.1 y HU-8.2)", () => {
+  it("game:finished pasa la sala al final", () => {
+    const final: FinalView = { standings: [standing(1, "Ana", 900)], totalPlayers: 1 };
+    const room = applyFinal(applyQuestionOpened(lobby, question), final);
+    expect(room.phase).toBe("final");
+    expect(room.final).toBe(final);
+    expect(room.question).toBeNull();
+    expect(room.reveal).toBeNull();
+  });
+
+  it("el podio son las tres primeras personas en el orden del servidor", () => {
+    const standings = [standing(1, "Ana", 900), standing(2, "Beto", 700), standing(3, "Carla", 500), standing(4, "Dani", 0)];
+    expect(podium(standings).map((s) => s.nickname)).toEqual(["Ana", "Beto", "Carla"]);
+  });
+
+  it("FA1: con menos de tres participantes solo aparecen quienes jugaron", () => {
+    expect(podium([standing(1, "Ana", 900)])).toHaveLength(1);
+    expect(podium([])).toEqual([]);
+  });
+
+  it("FA2: los empates conservan el puesto compartido que manda el servidor", () => {
+    const tied = [standing(1, "Ana", 800), standing(1, "Beto", 800), standing(3, "Carla", 0)];
+    expect(podium(tied).map((s) => s.rank)).toEqual([1, 1, 3]);
   });
 });

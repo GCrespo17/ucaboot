@@ -40,9 +40,9 @@ describe("final views (HU-7.4 FA1 & HU-8.3)", () => {
 
     expect(hostView).toEqual({
       standings: [
-        { rank: 1, playerId: "p1", nickname: "Player1", totalScore: 800 },
-        { rank: 1, playerId: "p2", nickname: "Player2", totalScore: 800 },
-        { rank: 3, playerId: "p3", nickname: "Player3", totalScore: 0 },
+        { rank: 1, playerId: "p1", nickname: "Player1", totalScore: 800, correctCount: 1, avgResponseSeconds: 2 },
+        { rank: 1, playerId: "p2", nickname: "Player2", totalScore: 800, correctCount: 1, avgResponseSeconds: 2 },
+        { rank: 3, playerId: "p3", nickname: "Player3", totalScore: 0, correctCount: 0, avgResponseSeconds: null },
       ],
       totalPlayers: 3,
     });

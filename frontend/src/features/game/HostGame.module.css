@@ -40,27 +40,53 @@
   font-variant-numeric: tabular-nums;
 }
 
-.closed {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 2rem 1rem;
-  border-radius: var(--radius);
-  background: var(--color-surface);
-  box-shadow: var(--shadow);
+.summary {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 1rem;
   text-align: center;
 }
 
-.closedTitle {
-  margin: 0;
-  color: var(--color-brand);
-  font-size: clamp(1.5rem, 3vw, 2rem);
+/* Tabla final (HU-8.2): se desplaza dentro de su caja en pantallas angostas */
+.tableWrap {
+  overflow-x: auto;
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  box-shadow: var(--shadow);
 }
 
-.closedText {
-  margin: 0;
+.table {
+  width: 100%;
+  border-collapse: collapse;
   color: var(--color-text);
-  font-size: 1.25rem;
-  overflow-wrap: anywhere;
+  font-variant-numeric: tabular-nums;
+}
+
+.table caption {
+  padding: 0.75rem;
+}
+
+.table th,
+.table td {
+  padding: 0.625rem 1rem;
+  border-top: 1px solid var(--color-border);
+  text-align: left;
+  white-space: nowrap;
+}
+
+.table thead th {
+  border-top: 0;
+  color: var(--color-text-muted);
+  font-size: 0.875rem;
+}
+
+.table tbody th {
+  font-weight: 700;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
 }

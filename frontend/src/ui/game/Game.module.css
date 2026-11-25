@@ -20,8 +20,8 @@
 }
 
 .stage {
-  display: grid;
-  grid-template-columns: auto 1fr;
+  display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 1rem;
   min-height: 8rem;
@@ -29,7 +29,12 @@
 
 .media {
   display: flex;
+  flex: 1;
   justify-content: center;
+}
+
+.media:empty {
+  display: none;
 }
 
 .image {
@@ -89,6 +94,72 @@
   background: rgba(0, 0, 0, 0.3);
   font-size: 0.875rem;
   white-space: nowrap;
+}
+
+/* Gráfico de la revelación (HU-7.1) */
+.chart {
+  display: flex;
+  flex: 2;
+  flex-direction: column;
+  gap: 0.5rem;
+  min-width: min(100%, 18rem);
+  margin: 0;
+}
+
+.bars {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 0.75rem;
+  height: 12rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.barColumn {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-end;
+  gap: 0.25rem;
+  max-width: 6rem;
+  height: 100%;
+}
+
+.barCount {
+  color: var(--color-text);
+  font-size: 1.25rem;
+  font-weight: 800;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.barTrack {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  justify-content: flex-end;
+  min-height: 0;
+}
+
+.bar {
+  border-radius: var(--radius) var(--radius) 0 0;
+  transition: height 0.4s ease-out;
+}
+
+.barShape {
+  padding: 0.25rem 0;
+  border-radius: 0 0 var(--radius) var(--radius);
+  color: #fff;
+  text-align: center;
+}
+
+.noAnswer {
+  color: var(--color-text-muted);
+  font-weight: 700;
+  text-align: center;
 }
 
 /* Temporizador */
@@ -169,8 +240,7 @@
 
 @media (max-width: 480px) {
   .stage {
-    grid-template-columns: 1fr;
-    justify-items: center;
+    flex-direction: column;
   }
 
   .answers {

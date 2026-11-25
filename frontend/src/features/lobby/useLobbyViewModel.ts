@@ -11,7 +11,7 @@ const LIBRARY = "/anfitrion/cuestionarios";
 // HU-4.2 ver el lobby con el PIN, HU-4.3 el QR de unión, HU-4.4 los apodos que entran
 // y HU-4.6 comenzar la partida. Al comenzar, la misma pantalla pasa a la pregunta.
 export function useLobbyViewModel(pin: string) {
-  const { state, start } = useHostRoom(pin);
+  const { state, start, next } = useHostRoom(pin);
   const [starting, setStarting] = useState(false);
   const [startError, setStartError] = useState<string | null>(null);
   const room = state.status === "lista" ? state.room : null;
@@ -56,6 +56,7 @@ export function useLobbyViewModel(pin: string) {
     // La partida en curso (HU-6.1 y HU-6.3)
     room,
     clockOffset: state.status === "lista" ? state.clockOffset : 0,
+    next, // HU-7.4
   };
 }
 

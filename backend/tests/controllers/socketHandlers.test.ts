@@ -256,7 +256,16 @@ describe("socket handlers (HU-6.1 FA4 & HU-6.2)", () => {
     if (!finalAck.ok) throw new Error("expected final ok");
     expect(finalAck.data.phase).toBe("final");
     expect(finalAck.data.final).toEqual({
-      standings: [{ rank: 1, playerId: joinAck.data.playerId, nickname: "Ana", totalScore: 1500 }],
+      standings: [
+        {
+          rank: 1,
+          playerId: joinAck.data.playerId,
+          nickname: "Ana",
+          totalScore: 1500,
+          correctCount: 2,
+          avgResponseSeconds: 2.5,
+        },
+      ],
       totalPlayers: 1,
     });
 
