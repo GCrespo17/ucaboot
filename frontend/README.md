@@ -112,7 +112,14 @@ El lobby muestra el PIN grande, la dirección para unirse y los apodos en orden 
 - El socket es el mismo de `/jugar`. Al entrar al lobby se reconecta para que el *handshake* lleve el token del anfitrión, y al salir se desconecta.
 - Si la sala ya no existe, es de otra cuenta o la sesión venció, vuelve a la biblioteca con el motivo. Las salas viven en la memoria del backend: si el backend se reinicia, se pierden.
 
-"Comenzar" (HU-4.6) queda deshabilitado hasta que el backend tenga `host:start`.
+## Partida del anfitrión
+
+"Comenzar" (HU-4.6) emite `host:start` y la misma ruta `/anfitrion/sala/:pin` pasa a la partida: la pantalla depende de la fase de la sala (`lobby`, `question`, `reveal`), así una recarga vuelve a la fase en curso.
+
+- Sin participantes el botón queda deshabilitado. Si el servidor rechaza el comienzo (`NO_PLAYERS`, `NO_VALID_QUESTIONS`) o no responde en 10 s, la sala sigue en el lobby y se puede reintentar. Si el comienzo sí llegó al servidor, `question:opened` actualiza la pantalla igual.
+- La pregunta se proyecta con `ui/game/QuestionProjection` (la misma de la vista previa) sin marcar correctas, con el conteo "n de m respondieron" de `question:answerCount` (HU-6.1).
+- El temporizador cuenta hasta `closesAt` con la hora del servidor: `useHostRoom` guarda la diferencia entre `serverNow` y el reloj local (`model/rooms/game.ts`), así todos ven el mismo tiempo y una recarga no lo reinicia (HU-6.3).
+- La recepción la cierra el servidor (por tiempo o porque respondieron todos) con `question:revealed`. Por ahora la pantalla indica el cierre y cuántos respondieron; la revelación completa, "Siguiente" y el podio vienen con HU-7.1, 7.4 y 8.1.
 
 ## Scripts
 

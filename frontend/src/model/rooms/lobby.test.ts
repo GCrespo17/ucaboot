@@ -8,6 +8,9 @@ const room: HostRoomSnapshot = {
   quiz: { title: "Capitales", coverUrl: null, totalQuestions: 3 },
   maxPlayers: 50,
   players: [{ playerId: "p1", nickname: "Ana" }],
+  question: null,
+  reveal: null,
+  final: null,
   serverNow: 0,
 };
 
