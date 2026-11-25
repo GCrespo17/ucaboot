@@ -535,6 +535,7 @@ Las cadenas de conexión (`DATABASE_URL`, `REDIS_URL`, `SUPABASE_URL`) no van en
 
 - [`docs/arquitectura_inicial.md`](docs/arquitectura_inicial.md): decisiones de arquitectura y su justificación.
 - [`docs/contrato-api.md`](docs/contrato-api.md): contrato REST del CRUD de cuestionarios y preguntas.
+- [`docs/respaldo.md`](docs/respaldo.md): volcado y restauración del esquema `public`.
 - [`docs/contenedores.md`](docs/contenedores.md): Dockerfiles, etapas, contenedores, puertos, variables de entorno y ejecución.
 - `docs/specs/` 
 
