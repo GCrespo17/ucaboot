@@ -419,6 +419,7 @@ El cliente vuelve a pedir `GET /api/quizzes/:quizId` para ver las posiciones nue
 | `UNAUTHORIZED` | 401 | Sin token, token inválido o token vencido |
 | `QUIZ_NOT_FOUND` | 404 | El cuestionario no existe o es de otra cuenta |
 | `QUESTION_NOT_FOUND` | 404 | La pregunta no pertenece a un cuestionario de esta cuenta |
+| `GAME_NOT_FOUND` | 404 | La partida no existe o es de otra cuenta |
 | `INTERNAL` | 500 | Fallo no previsto. Los datos guardados no cambian |
 
 `QUESTION_NOT_FOUND` todavía no está en `backend/src/services/errors.ts`. Se agrega en el PR de las rutas.
@@ -450,3 +451,79 @@ DELETE /api/quizzes/:id                 ─────▶ 204
 ```
 
 `POST /api/rooms` con un cuestionario sin preguntas jugables sigue respondiendo **422** `NO_VALID_QUESTIONS`, como ya dice el contrato de eventos. Un cuestionario recién creado todavía no puede abrir sala.
+
+## 8. Historial (HU-9.1 y HU-9.2)
+
+Las partidas las escribe el backend al cerrar la sala (HU-8.4, [contrato de eventos](contrato-eventos.md)). Estas rutas solo leen. Una partida de otra cuenta y una inexistente responden igual: **404** `GAME_NOT_FOUND`. Una sala todavía en juego no aparece.
+
+### `GET /api/games` (HU-9.1)
+
+```json
+{
+  "games": [
+    {
+      "id": "6b1e2c3a-1111-4111-8111-111111111111",
+      "quizTitle": "Capitales",
+      "finishedAt": "2026-11-24T22:15:00.000Z",
+      "playerCount": 4,
+      "presentedQuestions": 3,
+      "totalQuestions": 5,
+      "endReason": "completed"
+    }
+  ]
+}
+```
+
+`endReason` es `completed` o `hostAbsent`. El orden es `finishedAt` descendente. Sin partidas: **200** con `games: []`. El título es el de la copia jugada, no el del cuestionario vivo.
+
+### `GET /api/games/:gameId` (HU-9.2)
+
+```json
+{
+  "id": "6b1e2c3a-1111-4111-8111-111111111111",
+  "quizTitle": "Capitales",
+  "finishedAt": "2026-11-24T22:15:00.000Z",
+  "playerCount": 4,
+  "presentedQuestions": 3,
+  "totalQuestions": 5,
+  "endReason": "hostAbsent",
+  "accuracyPercent": 33.3,
+  "players": [
+    {
+      "nickname": "Ana",
+      "rank": 1,
+      "totalScore": 900,
+      "correctCount": 1,
+      "answeredCount": 2,
+      "avgResponseSeconds": 1.5
+    }
+  ],
+  "questions": [
+    {
+      "position": 0,
+      "text": "Capital de Francia",
+      "presented": true,
+      "noAnswerCount": 1,
+      "options": [
+        { "text": "París", "isCorrect": true, "count": 2 },
+        { "text": "Roma", "isCorrect": false, "count": 1 }
+      ]
+    },
+    {
+      "position": 1,
+      "text": "No se alcanzó a proyectar",
+      "presented": false,
+      "noAnswerCount": null,
+      "options": [{ "text": "Sí", "isCorrect": true, "count": null }]
+    }
+  ]
+}
+```
+
+`accuracyPercent` es las respuestas correctas aceptadas divididas entre participantes por preguntas presentadas, en porcentaje, con un decimal. Una pregunta no presentada no entra en ese cálculo y sus `count` y `noAnswerCount` llegan en `null`. `avgResponseSeconds` es `null` si el participante no tuvo ninguna respuesta aceptada. Los números salen del registro guardado: no se recalculan con el cuestionario vivo.
+
+Un `gameId` que no es UUID responde **404**, igual que una partida ajena.
+
+```json
+{ "error": "GAME_NOT_FOUND", "message": "Game not found" }
+```

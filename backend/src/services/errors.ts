@@ -6,6 +6,7 @@ export type ErrorCode =
   | "NOT_ROOM_HOST"
   | "QUIZ_NOT_FOUND"
   | "QUESTION_NOT_FOUND"
+  | "GAME_NOT_FOUND"
   | "HOST_HAS_OPEN_ROOM"
   | "PIN_UNAVAILABLE"
   | "PIN_INVALID"
